@@ -1,0 +1,18 @@
+type PresentationSetup @generate (
+    query: {
+        get: true,
+        query: true,
+        aggregate: true
+    },
+    mutation: {
+        add: true,
+        delete: true
+    },
+    subscription: true
+) {
+	id: ID!
+	tool: String! @search
+    name: String! @search
+	
+    schema: String!
+}

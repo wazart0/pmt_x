@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<!-- <h1>My First JavaScript</h1>
+
+<button type="button"
+onclick="document.getElementById('demo').innerHTML = Date()">
+Click me to display Date and Time.</button>
+
+<p id="demo"></p> -->
+
+
+<link rel="stylesheet" href="https://uicdn.toast.com/grid/latest/tui-grid.css" />
+
+<script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+<script src="https://uicdn.toast.com/grid/latest/tui-grid.js"></script>
+
+
+
+<script type="text/javascript" src="./example_data.js"></script>
+
+
+<button onclick="resetGrid()">Reset</button>
+
+<script type="text/babel" class="code-js">
+
+
+
+
+    const query = `{
+        queryPresentationSetup(filter: {tool: {allofterms: "tui"} and: {name: {allofterms: "Development"}}}) {
+            schema
+        }
+    }`
+
+    const url = 'http://localhost:8080/graphql'
+
+    fetch(url, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+        var col = JSON.parse(rjs['data']['queryPresentationSetup'][0]['schema']);
+
+        grid.setColumns(col['columns'])
+        grid.setHeader({
+                height: 50,
+                complexColumns: col['complexColumns'],
+            })
+
+    })
+    .catch (console.error);
+
+
+
+
+    
+    var grid = new tui.Grid({
+        el: document.getElementById('grid'),
+        scrollX: false,
+        scrollY: false,
+        columns: []
+        });
+
+    grid.on('beforeChange', ev => {
+      console.log('before change:', ev);
+    });
+    grid.on('afterChange', ev => {
+      console.log('after change:', ev);
+    })
+    grid.resetData(gridData);
+  
+    function resetGrid() {
+        console.log('refreshed');
+        grid.resetData(gridData);
+    }
+
+
+</script>
+
+<div id="grid"></div>
+
+</body>
+</html> 

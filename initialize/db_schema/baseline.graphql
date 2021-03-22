@@ -1,0 +1,66 @@
+enum PredecessorType {
+    FS
+    SF
+    FF
+    SS
+}
+
+type Predecessor @generate (
+    query: {
+        get: false,
+        query: true,
+        aggregate: true
+    },
+    mutation: {
+        add: false,
+        delete: false
+    },
+    subscription: false
+) {
+    type: PredecessorType!
+    project: ProjectBaseline!
+}
+
+type ProjectBaseline @generate (
+    query: {
+        get: false,
+        query: true,
+        aggregate: true
+    },
+    mutation: {
+        add: false,
+        delete: false
+    },
+    subscription: false
+) {
+    project: Project!
+    baseline: Baseline! 
+
+	start: DateTime
+    finish: DateTime
+    worktime: String
+
+    ancestor: ProjectBaseline
+    successor: ProjectBaseline
+    predecessors: [Predecessor]
+}
+
+type Baseline @generate (
+    query: {
+        get: true,
+        query: true,
+        aggregate: true
+    },
+    mutation: {
+        add: true,
+        delete: true
+    },
+    subscription: true
+) {
+	id: ID!
+	name: String! @search
+	description: String
+	
+    root: Project!
+    projects: [ProjectBaseline] @hasInverse(field: baseline)
+}

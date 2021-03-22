@@ -1,0 +1,1 @@
+../db/stop_db.ps1

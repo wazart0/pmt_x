@@ -1,0 +1,145 @@
+{
+    "columns": [
+        {
+            "header": "WBS",
+            "name": "wbs",
+            "editor": "text"
+        },
+        {
+            "header": "Name",
+            "name": "name",
+            "editor": "text"
+        },
+        {
+            "header": "Description",
+            "name": "description",
+            "editor": "text"
+        },
+        {
+            "header": "Depends on",
+            "name": "dependency",
+            "editor": "text"
+        },
+        {
+            "header": "Designer",
+            "name": "estimated_development_time_designer",
+            "editor": "text"
+        },
+        {
+            "header": "Reviewer",
+            "name": "estimated_development_time_reviewer",
+            "editor": "text"
+        },
+        {
+            "header": "PM",
+            "name": "estimated_development_time_pm",
+            "editor": "text"
+        },
+        {
+            "header": "Assigned developer",
+            "name": "assigned_developer",
+            "editor": "text"
+        },
+        {
+            "header": "Tester",
+            "name": "estimated_testing_time_tester",
+            "editor": "text"
+        },
+        {
+            "header": "PM",
+            "name": "estimated_testing_time_pm",
+            "editor": "text"
+        },
+        {
+            "header": "Assigned tester",
+            "name": "assigned_tester",
+            "editor": "text"
+        },
+        {
+            "header": "Start time",
+            "name": "actual_development_time_start",
+            "editor": "text"
+        },
+        {
+            "header": "Finish time",
+            "name": "actual_development_time_finish",
+            "editor": "text"
+        },
+        {
+            "header": "Duration [h]",
+            "name": "actual_development_time_duration",
+            "editor": "text"
+        },
+        {
+            "header": "Insertions",
+            "name": "commit_statistics_insertions",
+            "editor": "text"
+        },
+        {
+            "header": "Deletions",
+            "name": "commit_statistics_deletions",
+            "editor": "text"
+        },
+        {
+            "header": "Estimated code documentation time [h]",
+            "name": "code_documentation_time",
+            "editor": "text"
+        },
+        {
+            "header": "Jira ID",
+            "name": "jira_id",
+            "editor": "text"
+        },
+        {
+            "header": "Commit ID",
+            "name": "commit_id",
+            "editor": "text"
+        },
+        {
+            "header": "Sprint",
+            "name": "sprint",
+            "editor": "text"
+        },
+        {
+            "header": "Comment",
+            "name": "comment",
+            "editor": "text"
+        }
+    ],
+    "complexColumns": [
+        {
+            "header": "Estimated development time [h]",
+            "name": "estimated_development_time",
+            "childNames": [
+                "estimated_development_time_designer",
+                "estimated_development_time_reviewer",
+                "estimated_development_time_pm"
+            ]
+        },
+        {
+            "header": "Estimated testing time [h]",
+            "name": "estimated_testing_time",
+            "childNames": [
+                "estimated_testing_time_tester",
+                "estimated_testing_time_pm"
+            ]
+        },
+        {
+            "header": "Actual development time",
+            "name": "actual_development_time",
+            "childNames": [
+                "actual_development_time_start",
+                "actual_development_time_finish",
+                "actual_development_time_duration"
+            ]
+        },
+        {
+            "header": "Commit statistics",
+            "name": "commit_statistics",
+            "childNames": [
+                "commit_statistics_insertions",
+                "commit_statistics_deletions"
+            ]
+        }
+    ]
+}
