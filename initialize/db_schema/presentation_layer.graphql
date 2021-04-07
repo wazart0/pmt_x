@@ -15,4 +15,5 @@ type PresentationSetup @generate (
     name: String! @search
 	
     schema: String!
+    schemaMap: String!
 }

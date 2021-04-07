@@ -1,0 +1,218 @@
+{
+    "datasets": [
+        {
+            "id": "0"
+        }
+    ],
+    "filters": {
+        "locations": {
+            "includedLocations": {
+                "states": [],
+                "fipsList": [],
+                "cbsaList": [],
+                "radialLocations": []
+            },
+            "excludedLocations": {
+                "states": [],
+                "fipsList": [],
+                "cbsaList": [],
+                "radialLocations": []
+            }
+        },
+        "entities": {
+            "includedEntities": {
+                "careUnitTypes": [],
+                "careUnits": []
+            },
+            "excludedEntities": {
+                "careUnitTypes": [],
+                "careUnits": []
+            }
+        },
+        "serviceLines": {
+            "includedServiceLines": [],
+            "excludedServiceLines": []
+        },
+        "clinicalEpisodes": {
+            "includedClinicalEpisodes": [],
+            "excludedClinicalEpisodes": []
+        },
+        "drgs": {
+            "includedDrgs": [],
+            "excludedDrgs": []
+        },
+        "times": {
+            "excludedTimes": {
+                "dateTimes": [],
+                "timeRanges": [],
+                "years": []
+            },
+            "includedTimes": {
+                "dateTimes": [],
+                "timeRanges": [],
+                "years": []
+            }
+        },
+        "lobs": {
+            "includedLobs": [],
+            "excludedLobs": []
+        }
+    },
+    "unGroupRange": {
+        "hospital": {
+            "start": 0,
+            "length": 0,
+            "maxLength": false,
+            "parent": ""
+        },
+        "pac": {
+            "start": 0,
+            "length": 5,
+            "maxLength": false,
+            "parent": "LTCH"
+        }
+    },
+    "benchMark": {
+        "options": [
+            {
+                "aggregationLevel": "National",
+                "measure": "D90_rr_per_instance"
+            }
+        ],
+        "isEnable": false,
+        "metric": {
+            "isAverage": true,
+            "percent": 50
+        },
+        "times": {
+            "includedTimes": {
+                "timeRanges": [
+                    {
+                        "fromTime": {
+                            "quarter": "",
+                            "year": ""
+                        },
+                        "toTime": {
+                            "quarter": "",
+                            "year": ""
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "orders": [
+        {
+            "isAscending": false,
+            "orderName": "Case_count"
+        }
+    ],
+    "count": {
+        "casesCount": {
+            "minimumSelectedCount": 0,
+            "maximumSelectedCount": 0
+        },
+        "entitiesCount": {
+            "minimumSelectedCount": 0,
+            "maximumSelectedCount": 0
+        }
+    },
+    "actions": [
+        {
+            "actionType": "expand",
+            "nodeDetails": {
+                "isGrouped": false,
+                "nodeObject": {
+                    "id": "LTCH",
+                    "name": "LTCH",
+                    "type": "LTCH",
+                    "parent": ""
+                },
+                "nodeType": "pacType"
+            },
+            "side": "right"
+        }
+    ],
+    "legendData": {
+        "legendFilters": {
+            "locations": {
+                "includedLocations": {
+                    "states": [],
+                    "fipsList": [],
+                    "cbsaList": [],
+                    "radialLocations": []
+                },
+                "excludedLocations": {
+                    "states": [],
+                    "fipsList": [],
+                    "cbsaList": [],
+                    "radialLocations": []
+                }
+            },
+            "entities": {
+                "includedEntities": {
+                    "careUnitTypes": [],
+                    "careUnits": []
+                },
+                "excludedEntities": {
+                    "careUnitTypes": [],
+                    "careUnits": []
+                }
+            },
+            "serviceLines": {
+                "includedServiceLines": [],
+                "excludedServiceLines": []
+            },
+            "clinicalEpisodes": {
+                "includedClinicalEpisodes": [],
+                "excludedClinicalEpisodes": []
+            },
+            "drgs": {
+                "includedDrgs": [],
+                "excludedDrgs": []
+            },
+            "times": {
+                "excludedTimes": {
+                    "dateTimes": [],
+                    "timeRanges": [],
+                    "years": []
+                },
+                "includedTimes": {
+                    "dateTimes": [],
+                    "timeRanges": [],
+                    "years": []
+                }
+            },
+            "lobs": {
+                "includedLobs": [],
+                "excludedLobs": []
+            }
+        },
+        "legendsList": [
+            {
+                "legendName": "snf",
+                "parent": ""
+            },
+            {
+                "legendName": "hha",
+                "parent": ""
+            },
+            {
+                "legendName": "irf",
+                "parent": ""
+            },
+            {
+                "legendName": "ltch",
+                "parent": ""
+            },
+            {
+                "legendName": "home",
+                "parent": ""
+            },
+            {
+                "legendName": "hospitals",
+                "parent": ""
+            }
+        ]
+    }
+}

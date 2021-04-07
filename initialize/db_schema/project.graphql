@@ -1,3 +1,28 @@
+enum ExternalToolType {
+    Jira
+    GitLab
+    Other
+}
+
+type ExternalTool @generate (
+    query: {
+        get: false,
+        query: true,
+        aggregate: true
+    },
+    mutation: {
+        add: true,
+        delete: true
+    },
+    subscription: false
+) {
+	name: String! @search
+    url: String!
+    urlSubpath: String
+    externalID: String!
+    type: ExternalToolType!
+}
+
 type Project @generate (
     query: {
         get: true,
@@ -13,8 +38,11 @@ type Project @generate (
 	id: ID!
 	name: String! @search
 	description: String
-
-    customFields: String
 	
     baselines: [Baseline] @hasInverse(field: root)
+
+    externalTool: [ExternalTool]
+
+    customFields: String
+
 }

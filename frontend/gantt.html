@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<!-- <h1>My First JavaScript</h1>
+
+<button type="button"
+onclick="document.getElementById('demo').innerHTML = Date()">
+Click me to display Date and Time.</button>
+
+<p id="demo"></p> -->
+
+
+<!-- <link rel="stylesheet" href="https://uicdn.toast.com/grid/latest/tui-grid.css" /> -->
+
+<script src="https://cdn.anychart.com/releases/8.9.0/js/anychart-core.min.js" type="text/javascript"></script>
+<script src="https://cdn.anychart.com/releases/8.9.0/js/anychart-gantt.min.js" type="text/javascript"></script>
+
+<script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+
+
+
+<!-- <script type="text/javascript" src="./example_data.js"></script> -->
+
+
+<button onclick="resetGrid()">Reset</button>
+
+<script type="text/babel" class="code-js">
+
+    var gridData = []
+
+    const url = 'http://localhost:8080/graphql'
+
+
+
+
+    var query = `{
+        queryPresentationSetup(filter: {tool: {allofterms: "tui"} and: {name: {allofterms: "Development"}}}) {
+            schema
+        }
+    }`
+
+
+    fetch(url, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+        var col = JSON.parse(rjs['data']['queryPresentationSetup'][0]['schema']);
+
+        // grid.setColumns(col['columns'])
+        // grid.setHeader({
+        //         height: 50,
+        //         complexColumns: col['complexColumns'],
+        //     })
+
+    })
+    .catch(console.error);
+
+
+
+
+    function get_pose(project_id, list_of_projects) {
+        for (var i = 0; i < list_of_projects.length; i++) {
+            if (list_of_projects[i]['project']['id'] == project_id) {
+                return i;
+            }
+        }
+        return null;
+    }
+
+
+
+    var query = `{
+        queryProject (filter: {name: {allofterms: "O2 Grouper Pipeline - Task List.xlsx"}}) {
+            baselines (order: {desc: name}) {
+                name
+                projects (order: {asc: wbs}) {
+                    id
+                    project {id name description customFields}
+                    wbs
+                    worktime
+                    start
+                    finish
+                    parent {id}
+                }
+            }
+        }
+    }`
+
+
+    fetch(url, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+        var projects = rjs['data']['queryProject'][0]['baselines'][0]['projects'];
+        var projects_planned = rjs['data']['queryProject'][0]['baselines'][1]['projects'];
+        var formatted = []
+        var p;
+        for (p in projects) {
+            var project = {
+                'id': projects[p]['id'],
+                'wbs': projects[p]['wbs'], 
+                'name': projects[p]['project']['name'], 
+                'description': projects[p]['project']['description'], 
+                'actual_development_time_start': projects[p]['start'], 
+                'actual_development_time_finish': projects[p]['finish'], 
+                'actual_development_time_duration': projects[p]['worktime'],
+            }
+
+            if (projects[p]['parent']) {
+                project['parent'] = projects[p]['parent']['id']
+            }
+
+            if (projects[p]['project']['customFields']) {
+                var custom = JSON.parse(projects[p]['project']['customFields'])
+                var pr;
+                for (pr in custom) {
+                    project[pr] = custom[pr]
+                }
+            }
+
+
+
+            if (project['wbs'] == null) { 
+                project['collapsed'] = false 
+                project['wbs'] = '' 
+            }
+            else { project['collapsed'] = true }
+
+            if (project['actual_development_time_duration'] == null) {
+                project['actual_development_time_duration'] = '' 
+            }
+
+
+            var p_planned = get_pose(projects[p]['project']['id'], projects_planned);
+
+            if (projects_planned[p_planned]['worktime'] == null) { project['planned_time'] = ''; }
+            else { project['planned_time'] = projects_planned[p_planned]['worktime']; }
+
+
+            formatted.push(project)
+        }
+
+        var treeData = anychart.data.tree(formatted, "as-table");  
+        chart.data(treeData);
+        var mapping = treeData.mapAs({actualStart: "actual_development_time_start", actualEnd: "actual_development_time_finish"});
+        chart.data(mapping);
+
+    })
+    .catch(console.error);
+
+
+
+    var chart = anychart.ganttProject(); 
+    
+    var buttons = chart.dataGrid().buttons();
+    // configure data grid buttons in the normal state
+    buttons.normal().content("+");
+    buttons.normal().fontColor("#ef6c00");
+
+    // configure data grid buttons in the hover state
+    buttons.hovered().content("+");
+    buttons.hovered().fontColor(anychart.color.lighten("#ef6c00"));
+
+    // configure data grid buttons in the selected state
+    buttons.selected().content("-");
+    buttons.selected().fontColor("#64b5f6");
+
+    chart.dataGrid().column(0).labels().format("");
+    chart.dataGrid().column(0).collapseExpandButtons(true);
+    chart.dataGrid().column(0).width(10);
+
+    chart.dataGrid().column(1).labels().format("{%wbs}");
+    chart.dataGrid().column(1).title().text("WBS");
+    chart.dataGrid().column(1).depthPaddingMultiplier(0);
+    chart.dataGrid().column(1).collapseExpandButtons(false);
+    chart.dataGrid().column(1).width(50);
+
+    chart.dataGrid().column(2).title().text("Name")
+    chart.dataGrid().column(2).labels().format("{%name}");
+    chart.dataGrid().column(2).width(400);
+
+    chart.dataGrid().column(3).title().text("Planned worktime")
+    chart.dataGrid().column(3).labels().format("{%planned_time}");
+    chart.dataGrid().column(3).width(45);
+
+    chart.dataGrid().column(4).title().text("Actual worktime")
+    chart.dataGrid().column(4).labels().format("{%actual_development_time_duration}");
+    chart.dataGrid().column(4).width(45);
+
+    chart.container("container");
+    chart.draw();
+    chart.fitAll();
+  
+</script>
+
+<div style="height: 700px;" id="container"></div>
+
+</body>
+</html> 

@@ -18,23 +18,26 @@ Click me to display Date and Time.</button>
 
 
 
-<script type="text/javascript" src="./example_data.js"></script>
+<!-- <script type="text/javascript" src="./example_data.js"></script> -->
 
 
 <button onclick="resetGrid()">Reset</button>
 
 <script type="text/babel" class="code-js">
 
+    var gridData = []
+
+    const url = 'http://localhost:8080/graphql'
 
 
 
-    const query = `{
+
+    var query = `{
         queryPresentationSetup(filter: {tool: {allofterms: "tui"} and: {name: {allofterms: "Development"}}}) {
             schema
         }
     }`
 
-    const url = 'http://localhost:8080/graphql'
 
     fetch(url, {
         method: 'post',
@@ -54,16 +57,78 @@ Click me to display Date and Time.</button>
             })
 
     })
-    .catch (console.error);
+    .catch(console.error);
 
 
 
 
-    
+
+    var query = `{
+        queryProject (filter: {name: {allofterms: "o2grouper"}}) {
+            id
+            name
+            baselines (filter: {name: {allofterms: "default"}}) {
+                name
+                projects (filter: {has: parent} order: {asc: wbs}) {
+                    project {name description customFields}
+                    wbs
+                    worktime
+                    start
+                    finish
+                }
+            }
+        }
+    }`
+
+
+    fetch(url, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+        var projects = rjs['data']['queryProject'][0]['baselines'][0]['projects'];
+        var formatted = []
+        var p;
+        for (p in projects) {
+            var project = { 
+                'wbs': projects[p]['wbs'], 
+                'name': projects[p]['project']['name'], 
+                'description': projects[p]['project']['description'], 
+                'actual_development_time_start': projects[p]['start'], 
+                'actual_development_time_finish': projects[p]['finish'], 
+                'actual_development_time_duration': projects[p]['worktime'],
+            }
+            if (projects[p]['project']['customFields']) {
+                var custom = JSON.parse(projects[p]['project']['customFields'])
+                var pr;
+                for (pr in custom) {
+                    project[pr] = custom[pr]
+                }
+            }
+            formatted.push(project)
+        }
+        gridData = formatted;
+        resetGrid()
+    })
+    .catch(console.error);
+
+
+
+
+
     var grid = new tui.Grid({
         el: document.getElementById('grid'),
         scrollX: false,
         scrollY: false,
+        // treeColumnOptions: {
+        //     name: 'wbs',
+        //     useIcon: false,
+        //     useCascadingCheckbox: true
+        // },
         columns: []
         });
 
@@ -72,7 +137,7 @@ Click me to display Date and Time.</button>
     });
     grid.on('afterChange', ev => {
       console.log('after change:', ev);
-    })
+    });
     grid.resetData(gridData);
   
     function resetGrid() {

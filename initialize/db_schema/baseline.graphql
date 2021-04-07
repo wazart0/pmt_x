@@ -23,16 +23,17 @@ type Predecessor @generate (
 
 type ProjectBaseline @generate (
     query: {
-        get: false,
+        get: true,
         query: true,
         aggregate: true
     },
     mutation: {
-        add: false,
-        delete: false
+        add: true,
+        delete: true
     },
     subscription: false
 ) {
+    id: ID!
     project: Project!
     baseline: Baseline! 
 
@@ -40,8 +41,10 @@ type ProjectBaseline @generate (
     finish: DateTime
     worktime: String
 
-    ancestor: ProjectBaseline
-    successor: ProjectBaseline
+    wbs: String
+
+    parent: ProjectBaseline
+    children: [ProjectBaseline] @hasInverse(field: parent)
     predecessors: [Predecessor]
 }
 

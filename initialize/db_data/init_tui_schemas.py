@@ -17,6 +17,7 @@ mutation {
       tool: "tui"
       name: "Development"
       schema: put_schema_json_here
+      schemaMap: "set this up properly!"
     }
   ]) {
     presentationSetup {
@@ -30,7 +31,7 @@ mutation {
 for filename in filenames:
     schema = open(path + filename, 'r').read().replace('\n', ' ').replace('"', '\\"')
     data = query.replace('put_schema_json_here', "\"" + schema + "\"")
-    print(data)
+    # print(data)
     response = requests.post(url=url, json={"query": data})
 
     if response.status_code != 200:
