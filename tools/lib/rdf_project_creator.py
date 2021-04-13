@@ -46,7 +46,7 @@ class RDF():
         else:
             rdf, _ = RDF.generate_project_baseline(id, id + self.root_id_planned, self.baseline_id_planned, parent_id=self.root_id_planned, **kwargs)
         self.rdf_string = self.rdf_string + rdf
-        
+
 
 
     @staticmethod
@@ -60,9 +60,9 @@ class RDF():
             project_triple = project_triple + '''_:p{0} <Project.description> "{1}" .\n'''.format(project_id, kwargs['description'])
             del kwargs['description']
         
-        if 'externalTool' in kwargs:
-            project_triple = project_triple + '''_:p{0} <Project.externalTool> "{1}" .\n'''.format(project_id, kwargs['externalTool'])
-            del kwargs['externalTool']
+        # if 'externalTool' in kwargs: # TODO
+        #     project_triple = project_triple + '''_:p{0} <Project.externalTool> "{1}" .\n'''.format(project_id, kwargs['externalTool'])
+        #     del kwargs['externalTool']
 
         if kwargs:
             project_triple = project_triple + '''_:p{0} <Project.customFields> "{1}" .\n'''.format(project_id, json.dumps(kwargs).replace('"', '\\\"'))
@@ -110,7 +110,12 @@ class RDF():
             project_baseline_triple = project_baseline_triple + '''_:pb{0} <ProjectBaseline.finish> "{1}"^^<xs:dateTime> .\n'''.format(project_baseline_id, kwargs['finish'])
             del kwargs['finish']
             
-        # add predecessors 
+        if 'predecessors' in kwargs:
+            for predecessor in kwargs['predecessors']:
+                project_baseline_triple = project_baseline_triple + '''_:pb{0} <ProjectBaseline.predecessors> _:pb{0}_pb{1} .\n'''.format(project_baseline_id, predecessor['id'])
+                project_baseline_triple = project_baseline_triple + '''_:pb{0}_pb{1} <Predecessor.project> _:pb{1} .\n'''.format(project_baseline_id, predecessor['id'])
+                project_baseline_triple = project_baseline_triple + '''_:pb{0}_pb{1} <Predecessor.type> "{2}" .\n'''.format(project_baseline_id, predecessor['id'], predecessor['type'])
+            del kwargs['predecessors']
 
         return (project_baseline_triple, kwargs)
 

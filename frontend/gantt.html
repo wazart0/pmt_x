@@ -22,8 +22,11 @@ Click me to display Date and Time.</button>
 
 <!-- <script type="text/javascript" src="./example_data.js"></script> -->
 
-
+<label for="dataGridCheckbox">Edit Data Grid</label>
+<input type="checkbox" id="dataGridCheckbox" onchange="editDataGrid()">
 <button onclick="resetGrid()">Reset</button>
+
+
 
 <script type="text/babel" class="code-js">
 
@@ -75,18 +78,38 @@ Click me to display Date and Time.</button>
 
 
 
+    // var query = `{
+    //     #queryProject (filter: {has: baselines}) {
+    //     queryProject (filter: {name: {allofterms: "P2 v3 Replatforming Tasks List.xlsx"}}) {
+    //         baselines (order: {desc: name}) {
+    //             name
+    //             projects (order: {asc: wbs}) {
+    //                 project {id name description customFields}
+    //                 wbs
+    //                 worktime
+    //                 start
+    //                 finish
+    //                 parent {project {id}}
+    //                 predecessors {type project {project {id}}}
+    //             }
+    //         }
+    //     }
+    // }`
+
     var query = `{
-        queryProject (filter: {name: {allofterms: "O2 Grouper Pipeline - Task List.xlsx"}}) {
-            baselines (order: {desc: name}) {
+        queryProject (filter: {has: baselines and: {name: {allofterms: "P2"}}}) {
+        name
+            #baselines (filter: {name: {allofterms: "infinite_resources_6"}}) {
+            baselines (filter: {name: {allofterms: "limited_5"}}) {
                 name
                 projects (order: {asc: wbs}) {
-                    id
                     project {id name description customFields}
                     wbs
                     worktime
                     start
                     finish
-                    parent {id}
+                    parent {project {id}}
+                    predecessors {type project {project {id}}}
                 }
             }
         }
@@ -102,54 +125,81 @@ Click me to display Date and Time.</button>
     })
     .then(res => res.json())
     .then(function (rjs) {
-        var projects = rjs['data']['queryProject'][0]['baselines'][0]['projects'];
-        var projects_planned = rjs['data']['queryProject'][0]['baselines'][1]['projects'];
+        // console.log(rjs)
         var formatted = []
-        var p;
-        for (p in projects) {
-            var project = {
-                'id': projects[p]['id'],
-                'wbs': projects[p]['wbs'], 
-                'name': projects[p]['project']['name'], 
-                'description': projects[p]['project']['description'], 
-                'actual_development_time_start': projects[p]['start'], 
-                'actual_development_time_finish': projects[p]['finish'], 
-                'actual_development_time_duration': projects[p]['worktime'],
+        var s;
+        for (s in rjs['data']['queryProject']) {
+            // console.log(rjs['data']['queryProject'][s])
+            if (rjs['data']['queryProject'][s]['baselines'].length == 0) {
+                continue
+            }
+            var projects = rjs['data']['queryProject'][s]['baselines'][0]['projects'];
+            // var projects_planned = rjs['data']['queryProject'][s]['baselines'][1]['projects'];
+            var p;
+            for (p in projects) {
+                var project = {
+                    'id': projects[p]['project']['id'],
+                    'wbs': projects[p]['wbs'], 
+                    'name': projects[p]['project']['name'], 
+                    'description': projects[p]['project']['description'], 
+                    'actual_development_time_start': projects[p]['start'], 
+                    'actual_development_time_finish': projects[p]['finish'], 
+                    'actual_development_time_duration': projects[p]['worktime'],
+                }
+
+                if (projects[p]['parent']) {
+                    project['parent'] = projects[p]['parent']['project']['id']
+                }
+
+                if (projects[p]['project']['customFields']) {
+                    var custom = JSON.parse(projects[p]['project']['customFields'])
+                    var pr;
+                    for (pr in custom) {
+                        project[pr] = custom[pr]
+                    }
+                }
+
+                if (project['wbs'] == null) { 
+                    project['collapsed'] = false 
+                    project['wbs'] = '' 
+                }
+                else { project['collapsed'] = true }
+
+                if (project['actual_development_time_duration'] == null) {
+                    project['actual_development_time_duration'] = ''
+                }
+
+                // var p_planned = get_pose(projects[p]['project']['id'], projects_planned);
+
+                // if (projects_planned[p_planned]['worktime'] == null) { project['planned_time'] = ''; }
+                // else { project['planned_time'] = projects_planned[p_planned]['worktime']; }
+
+                if ('jira_id' in project) {
+                    project['jira_link'] = "https://tangramcare.atlassian.net/browse/" + project['jira_id']
+                }
+
+                formatted.push(project)
             }
 
-            if (projects[p]['parent']) {
-                project['parent'] = projects[p]['parent']['id']
-            }
-
-            if (projects[p]['project']['customFields']) {
-                var custom = JSON.parse(projects[p]['project']['customFields'])
-                var pr;
-                for (pr in custom) {
-                    project[pr] = custom[pr]
+            for (p in projects) {
+                var pred;
+                for (pred in projects[p]['predecessors']) {
+                    var form;
+                    for (form in formatted) {
+                        if (formatted[form]['id'] == projects[p]['predecessors'][pred]['project']['project']['id']) {
+                            formatted[form]['connectTo'] = projects[p]['project']['id']
+                            if (projects[p]['predecessors'][pred]['type'] == 'FS') { formatted[form]['connectorType'] = "finish-start" }
+                            if (projects[p]['predecessors'][pred]['type'] == 'SF') { formatted[form]['connectorType'] = "start-finish" }
+                            if (projects[p]['predecessors'][pred]['type'] == 'SS') { formatted[form]['connectorType'] = "start-start" }
+                            if (projects[p]['predecessors'][pred]['type'] == 'FF') { formatted[form]['connectorType'] = "finish-finish" }
+                        }
+                    }
                 }
             }
-
-
-
-            if (project['wbs'] == null) { 
-                project['collapsed'] = false 
-                project['wbs'] = '' 
-            }
-            else { project['collapsed'] = true }
-
-            if (project['actual_development_time_duration'] == null) {
-                project['actual_development_time_duration'] = '' 
-            }
-
-
-            var p_planned = get_pose(projects[p]['project']['id'], projects_planned);
-
-            if (projects_planned[p_planned]['worktime'] == null) { project['planned_time'] = ''; }
-            else { project['planned_time'] = projects_planned[p_planned]['worktime']; }
-
-
-            formatted.push(project)
         }
+
+        console.log(projects)
+        console.log(formatted)
 
         var treeData = anychart.data.tree(formatted, "as-table");  
         chart.data(treeData);
@@ -180,11 +230,13 @@ Click me to display Date and Time.</button>
     chart.dataGrid().column(0).collapseExpandButtons(true);
     chart.dataGrid().column(0).width(10);
 
-    chart.dataGrid().column(1).labels().format("{%wbs}");
-    chart.dataGrid().column(1).title().text("WBS");
+    chart.dataGrid().column(1).title().text("Jira ID");
     chart.dataGrid().column(1).depthPaddingMultiplier(0);
     chart.dataGrid().column(1).collapseExpandButtons(false);
     chart.dataGrid().column(1).width(50);
+    chart.dataGrid().column(1).labels().useHtml(true);
+    chart.dataGrid().column(1).labels().format("<a href='{%jira_link}'>{%jira_id}</a>");
+
 
     chart.dataGrid().column(2).title().text("Name")
     chart.dataGrid().column(2).labels().format("{%name}");
@@ -198,10 +250,23 @@ Click me to display Date and Time.</button>
     chart.dataGrid().column(4).labels().format("{%actual_development_time_duration}");
     chart.dataGrid().column(4).width(45);
 
+    chart.splitterPosition("567px");
+
     chart.container("container");
     chart.draw();
     chart.fitAll();
   
+
+function editDataGrid() {
+  if (document.getElementById("dataGridCheckbox").checked) { 
+    chart.dataGrid().edit(true);
+  } else {
+    chart.dataGrid().edit(false);
+  }
+}
+
+
+
 </script>
 
 <div style="height: 700px;" id="container"></div>
