@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<!-- <h1>My First JavaScript</h1>
+
+<button type="button"
+onclick="document.getElementById('demo').innerHTML = Date()">
+Click me to display Date and Time.</button>
+
+<p id="demo"></p> -->
+
+
+<!-- <link rel="stylesheet" href="https://uicdn.toast.com/grid/latest/tui-grid.css" /> -->
+
+<script src="https://cdn.anychart.com/releases/8.9.0/js/anychart-core.min.js" type="text/javascript"></script>
+<script src="https://cdn.anychart.com/releases/8.9.0/js/anychart-gantt.min.js" type="text/javascript"></script>
+
+<script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+
+
+
+<!-- <script type="text/javascript" src="./example_data.js"></script> -->
+
+<label for="dataGridCheckbox">Edit Data Grid</label>
+<input type="checkbox" id="dataGridCheckbox" onchange="editDataGrid()">
+<button onclick="resetGrid()">Reset</button>
+
+
+
+<script type="text/babel" class="code-js">
+
+    var gridData = []
+
+    const url = 'http://localhost:8080/graphql'
+
+
+
+
+    var query = `{
+        queryPresentationSetup(filter: {tool: {allofterms: "tui"} and: {name: {allofterms: "Development"}}}) {
+            schema
+        }
+    }`
+
+
+    fetch(url, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+        var col = JSON.parse(rjs['data']['queryPresentationSetup'][0]['schema']);
+
+        // grid.setColumns(col['columns'])
+        // grid.setHeader({
+        //         height: 50,
+        //         complexColumns: col['complexColumns'],
+        //     })
+
+    })
+    .catch(console.error);
+
+
+
+    function find_resource(formatted, resource_id) {
+        var i
+        for (i in formatted) {
+            if (formatted[i]['id'] == resource_id) {
+                return formatted[i]
+            }
+        }
+        return null
+    }
+
+
+
+
+    // var query = `{
+    //     #queryProject (filter: {has: baselines}) {
+    //     queryProject (filter: {name: {allofterms: "P2 v3 Replatforming Tasks List.xlsx"}}) {
+    //         baselines (order: {desc: name}) {
+    //             name
+    //             projects (order: {asc: wbs}) {
+    //                 project {id name description customFields}
+    //                 wbs
+    //                 worktime
+    //                 start
+    //                 finish
+    //                 parent {project {id}}
+    //                 predecessors {type project {project {id}}}
+    //             }
+    //         }
+    //     }
+    // }`
+
+    var query = `{
+        queryBaseline (filter: {name: {allofterms: "limited_6"}} offset: 0 first: 1) {
+                id
+                name
+                resources (order: {asc: resource}) {
+                    id
+                    resource
+                    project {id}
+                    start
+                    finish
+            }
+        }
+    }`
+
+
+    fetch(url, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+        var formatted = []
+        var s;
+        for (s in rjs['data']['queryBaseline']) {
+            var resources = rjs['data']['queryBaseline'][s]['resources']
+            var r
+            for (r in resources) {
+                var resource = find_resource(formatted, resources[r]['resource'])
+                if (resource) {
+                    resource['periods'].push({"id": resources[r]['id'], "start": resources[r]['start'], "end": resources[r]['finish']})
+                }
+                else {
+                    formatted.push({
+                        "id": resources[r]['resource'],
+                        "name": resources[r]['resource'],
+                        "periods": [
+                            {"id": resources[r]['id'], "start": resources[r]['start'], "end": resources[r]['finish']}
+                        ]
+                    })
+                }
+            }
+        }
+
+        // console.log(projects)
+        console.log(formatted)
+
+        var treeData = anychart.data.tree(formatted, "as-table");  
+        chart.data(treeData);
+
+    })
+    .catch(console.error);
+
+
+
+    var chart = anychart.ganttResource(); 
+    
+    var buttons = chart.dataGrid().buttons();
+    // configure data grid buttons in the normal state
+    buttons.normal().content("+");
+    buttons.normal().fontColor("#ef6c00");
+
+    // configure data grid buttons in the hover state
+    buttons.hovered().content("+");
+    buttons.hovered().fontColor(anychart.color.lighten("#ef6c00"));
+
+    chart.splitterPosition("250px");
+
+    chart.container("container");
+    chart.draw();
+    chart.fitAll();
+  
+
+function editDataGrid() {
+  if (document.getElementById("dataGridCheckbox").checked) { 
+    chart.dataGrid().edit(true);
+  } else {
+    chart.dataGrid().edit(false);
+  }
+}
+
+
+
+</script>
+
+<div style="height: 700px;" id="container"></div>
+
+</body>
+</html> 

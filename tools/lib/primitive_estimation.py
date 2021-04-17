@@ -23,6 +23,7 @@ def create_availability_calendar(start_time = pd.Timestamp.now(tz='UTC'), number
         calendar = pd.concat([calendar, availability])
 
     calendar.reset_index(inplace=True)
+    calendar.drop(inplace=True, columns=['index'])
 
     return calendar
 

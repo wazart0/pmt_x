@@ -48,6 +48,28 @@ type ProjectBaseline @generate (
     predecessors: [Predecessor]
 }
 
+type ResourceBaseline @generate (
+    query: {
+        get: true,
+        query: true,
+        aggregate: true
+    },
+    mutation: {
+        add: true,
+        delete: true
+    },
+    subscription: false
+) {
+    id: ID!
+    project: Project!
+    baseline: Baseline!
+    resource: Int!
+
+	start: DateTime
+    finish: DateTime
+    worktime: String
+}
+
 type Baseline @generate (
     query: {
         get: true,
@@ -66,4 +88,5 @@ type Baseline @generate (
 	
     root: Project!
     projects: [ProjectBaseline] @hasInverse(field: baseline)
-}
+    resources: [ResourceBaseline] @hasInverse(field: baseline)
+} 

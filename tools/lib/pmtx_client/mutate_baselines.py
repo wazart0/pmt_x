@@ -26,10 +26,10 @@ def add_child_to_parent(list: list, id: str, child: str) -> None:
 
 
 
-def adjust_to_query_baseline(projects_df: pd.DataFrame, baseline_id: str, root_id: str) -> str:
-    projects_to_parse = projects_df.copy(deep=True)
+def adjust_to_query_project_baseline(projects: pd.DataFrame, baseline_id: str, root_id: str) -> str:
+    projects_to_parse = projects.copy(deep=True)
 
-    projects_to_parse['worktime'] = projects_to_parse.worktime.apply(lambda worktime: str(float(worktime.total_seconds())/3600.) + 'h')
+    projects_to_parse['worktime'] = projects_to_parse.worktime.apply(lambda val: str(float(val.total_seconds())/3600.) + 'h')
     projects_to_parse['start'] = projects_to_parse.start.astype(str).apply(lambda val: None if val == 'NaT' else str_to_rfc(val))
     projects_to_parse['finish'] = projects_to_parse.finish.astype(str).apply(lambda val: None if val == 'NaT' else str_to_rfc(val))
 
@@ -85,7 +85,7 @@ def add_baseline_and_return_id(url: str, baseline_name: str, root_id: str):
 
 
 def add_project_baseline(url: str, projects: pd.DataFrame, baseline_id: str, root_id: str) -> None:
-    project_baseline = adjust_to_query_baseline(projects, baseline_id, root_id)
+    project_baseline = adjust_to_query_project_baseline(projects, baseline_id, root_id)
 
     mutation_project_baseline = '''
     mutation ($projects: [AddProjectBaselineInput!]!)  {
@@ -116,6 +116,48 @@ def add_project_baseline(url: str, projects: pd.DataFrame, baseline_id: str, roo
     return
 
 
+def adjust_to_query_resource_baseline(resources: pd.DataFrame, baseline_id: str) -> str:
+    resource_to_parse = resources[resources.project_id.notnull()].copy(deep=True)
+
+    resource_to_parse['worktime'] = resource_to_parse.finish - resource_to_parse.start
+
+    resource_to_parse['worktime'] = resource_to_parse.worktime.apply(lambda val: str(float(val.total_seconds())/3600.) + 'h')
+    resource_to_parse['start'] = resource_to_parse.start.astype(str).apply(lambda val: None if val == 'NaT' else str_to_rfc(val))
+    resource_to_parse['finish'] = resource_to_parse.finish.astype(str).apply(lambda val: None if val == 'NaT' else str_to_rfc(val))
+
+    resource_to_parse.rename(inplace=True, columns={"user_id": "resource"})
+
+    resource_to_parse = resource_to_parse.to_dict(orient="records")
+
+    for resource in resource_to_parse:
+        resource['baseline'] = {"id": baseline_id}
+        resource['project'] = {"id": resource['project_id']}
+        del resource['project_id']
+
+    return resource_to_parse
+
+
+def add_resource_baseline(url: str, resources: pd.DataFrame, baseline_id: str) -> None:
+    resource_baseline = adjust_to_query_resource_baseline(resources, baseline_id)
+
+    mutation_project_baseline = '''
+    mutation ($resources: [AddResourceBaselineInput!]!)  {
+      addResourceBaseline (input: $resources) {
+        numUids
+      }
+    }
+    '''
+
+    r = requests.post(url=url, json={"query": mutation_project_baseline, "variables": {"resources": resource_baseline}})
+
+    if r.status_code != 200 \
+        or 'errors' in r.json() \
+        or r.json()['data']['addResourceBaseline']['numUids'] != resources[resources.project_id.notnull()].shape[0]:
+
+        print('ERROR: record not ingested: ' + str(url) + '\n' + str(r.status_code) + '\n' + str(r.json()) + '\n')
+        raise Exception('problem with getting data')
+
+    return
 
 
 if __name__ == "__main__":
@@ -129,5 +171,6 @@ if __name__ == "__main__":
 
     baseline_id = add_baseline_and_return_id(baseline_name, root_id)
     # add_project_baseline(solver.projects, baseline_id, root_id)
+    # add_resource_baseline(url, solver.av, baseline_id)
 
     print("Finished.")
