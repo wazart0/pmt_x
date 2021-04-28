@@ -51,7 +51,7 @@ class ProposeAssigment():
 
         self.ld = self.create_lowest_level_dependencies()
 
-        self.av['project_id'] = None
+        # self.av['project_id'] = None
 
 
     # def create_wbs(self): TODO
@@ -65,8 +65,6 @@ class ProposeAssigment():
 
     def create_lowest_level_projects(self):
         return self.projects[~self.projects.project_id.isin(self.projects.parent_id)][['project_id', 'worktime']]
-        # self.projects.worktime.loc[self.projects.project_id.isin(self.projects.parent_id)] = None
-        # self.projects.drop(['worktime'], axis=1, inplace=True)
 
 
     def create_lowest_level_dependencies(self):
@@ -213,7 +211,7 @@ class ProposeAssigment():
             self.lp.loc[self.lp.project_id == row['project_id'], 'finish'] = self.projects[self.projects.project_id == row['project_id']].finish.iloc[0]
 
 
-    def assign_projects_by_start_based_on_infinite_resources(self, partial_update = False, partial_update_from = None, one_worker_per_project = False):
+    def assign_projects_by_start_based_on_infinite_resources(self, partial_update = False, partial_update_from = None, one_worker_per_project = False, priority_df = None):
         if partial_update == True and partial_update_from is None:
             partial_update_from = pd.Timestamp.utcnow()
 
@@ -224,6 +222,12 @@ class ProposeAssigment():
         self.lp.finish = None
         self.update_lp_based_on_projects()
 
+
+        ### TODO temporary logic, to be removed
+        if priority_df:
+            pass
+
+
         for project_id in temp_df.project_id:
             if partial_update == True:
                 if self.projects[self.projects.project_id == project_id].finish.iloc[0] is pd.NaT:
@@ -232,6 +236,35 @@ class ProposeAssigment():
                 self.assign_time_first_free(project_id, one_worker_per_project=one_worker_per_project)
             
         number_of_fixes = self.fix_dependence_issues(partial_update=partial_update, one_worker_per_project=one_worker_per_project)
+        print("Preliminary assignment quality: " + str(number_of_fixes))
+        return self.lp.finish.max()
+
+
+    def assign_projects_from_last_task_based_on_infinite_resources(self, partial_update = False, partial_update_from = None, one_worker_per_project = False, priority_df = None):
+        if partial_update == True and partial_update_from is None:
+            partial_update_from = pd.Timestamp.utcnow()
+
+        self.assign_projects_infinite_resources(partial_update=partial_update, partial_update_from=partial_update_from)
+        temp_df = self.lp.copy(deep=True)
+        temp_df.sort_values(['finish'], ascending=False, inplace=True)
+        self.lp.start = None
+        self.lp.finish = None
+        self.update_lp_based_on_projects()
+
+
+        ### TODO temporary logic, to be removed
+        if priority_df:
+            pass
+
+
+        for project_id in temp_df.project_id:
+            if partial_update == True:
+                if self.projects[self.projects.project_id == project_id].finish.iloc[0] is pd.NaT:
+                    self.assign_time_first_free(project_id, one_worker_per_project=one_worker_per_project)
+            else:
+                self.assign_time_first_free(project_id, one_worker_per_project=one_worker_per_project)
+            
+            number_of_fixes = self.fix_dependence_issues(partial_update=partial_update, one_worker_per_project=one_worker_per_project)
         print("Preliminary assignment quality: " + str(number_of_fixes))
         return self.lp.finish.max()
 

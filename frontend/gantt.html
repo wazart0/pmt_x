@@ -99,10 +99,10 @@ Click me to display Date and Time.</button>
     var query = `{
         queryProject (filter: {has: baselines and: {name: {allofterms: "P2"}}}) {
         name
-            #baselines (filter: {name: {allofterms: "infinite_resources_6"}}) {
-            baselines (filter: {name: {allofterms: "limited_6"}}) {
+            baselines (filter: {name: {allofterms: "infinite_resources_10"}}) {
+            #baselines (filter: {name: {allofterms: "limited_8_sprint_5_only"}}) {
                 name
-                projects (order: {asc: wbs}) {
+                projects (order: {desc: finish}) {
                     project {id name description customFields}
                     wbs
                     worktime
@@ -176,8 +176,17 @@ Click me to display Date and Time.</button>
 
                 if ('jira_id' in project) {
                     project['jira_link'] = "https://tangramcare.atlassian.net/browse/" + project['jira_id']
+                    // if (project['jira_link'] == 'PP-406') { 
+                    //     // console.log(project)
+                    // }
                 }
 
+                // if ('sprint' in project) {
+                //     // console.log(project)
+                //     if (project['sprint'] == 'Sprint 5') {
+                //         formatted.push(project)
+                //     }
+                // }
                 formatted.push(project)
             }
 
@@ -198,8 +207,14 @@ Click me to display Date and Time.</button>
             }
         }
 
-        console.log(projects)
-        console.log(formatted)
+        // console.log(projects)
+        // console.log(formatted)
+
+        for (var form in formatted) {
+            if (formatted[form]['jira_id'] == 'PP-406'){ 
+                console.log(formatted[form])
+            }
+        }
 
         var treeData = anychart.data.tree(formatted, "as-table");  
         chart.data(treeData);
@@ -233,7 +248,7 @@ Click me to display Date and Time.</button>
     chart.dataGrid().column(1).title().text("Jira ID");
     chart.dataGrid().column(1).depthPaddingMultiplier(0);
     chart.dataGrid().column(1).collapseExpandButtons(false);
-    chart.dataGrid().column(1).width(50);
+    chart.dataGrid().column(1).width(60);
     chart.dataGrid().column(1).labels().useHtml(true);
     chart.dataGrid().column(1).labels().format("<a href='{%jira_link}'>{%jira_id}</a>");
 
@@ -244,13 +259,17 @@ Click me to display Date and Time.</button>
 
     chart.dataGrid().column(3).title().text("Planned worktime")
     chart.dataGrid().column(3).labels().format("{%planned_time}");
-    chart.dataGrid().column(3).width(45);
+    chart.dataGrid().column(3).width(40);
 
     chart.dataGrid().column(4).title().text("Actual worktime")
     chart.dataGrid().column(4).labels().format("{%actual_development_time_duration}");
-    chart.dataGrid().column(4).width(45);
+    chart.dataGrid().column(4).width(40);
 
     chart.splitterPosition("567px");
+
+    // chart.getTimeline().tooltip().format(
+    //     "Start: {%actual_development_time_start}\nFinish: {%actual_development_time_finish}"
+    // )
 
     chart.container("container");
     chart.draw();

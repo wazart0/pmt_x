@@ -160,6 +160,89 @@ def add_resource_baseline(url: str, resources: pd.DataFrame, baseline_id: str) -
     return
 
 
+def modify_project_baseline_predecessors(url: str, dependencies_df: pd.DataFrame, baseline_id: str):
+    dependencies = dependencies_df.copy(deep=True)
+
+    query_projectbaseline = '''
+        query ($baseline_id:ID!) {
+            getBaseline (id: $baseline_id) {
+                projects {
+                    id
+                    project {id}
+                }
+            }
+        }
+    '''
+
+    r = requests.post(url=url, json={"query": query_projectbaseline, "variables": {"baseline_id": baseline_id}})
+
+    if r.status_code != 200 or 'errors' in r.json():
+        print('ERROR: record not ingested: ' + str(url) + '\n' + str(r.status_code) + '\n' + str(r.json()) + '\n' + str(query_projectbaseline))
+        raise Exception('problem with getting data')
+
+    projects_mask = []
+
+    for project in r.json()['data']['getBaseline']['projects']:
+        projects_mask.append({
+            "project_id": project['project']['id'],
+            "project_baseline_id": project['id']
+        })
+
+    dependencies = dependencies.merge(pd.DataFrame(projects_mask), how='left', on='project_id')
+    dependencies = dependencies.merge(pd.DataFrame(projects_mask), how='left', left_on='predecessor_id', right_on='project_id')
+    dependencies.drop(inplace=True, columns=['project_id_x', 'project_id_y', 'predecessor_id'])
+    dependencies.rename(inplace=True, columns={'project_baseline_id_x': 'project_baseline_id', 'project_baseline_id_y': 'predecessor_baseline_id'})
+
+
+    variables = []
+
+    for _, row in dependencies.iterrows():
+        var = None
+        for i in variables:
+            var = i if i['project']['filter']['id'][0] == row['project_baseline_id'] else None
+        if var:
+            var['project']['set']['predecessors'].append({"type": row['type'], "project": {"id": row['predecessor_baseline_id']}})
+        else:
+            variables.append({
+                "project": {
+                    "filter": {
+                        "id": [
+                            row['project_baseline_id']
+                        ]
+                    },
+                    "set": {
+                        "predecessors": [
+                            {
+                                "type": row['type'],
+                                "project": {
+                                    "id": row['predecessor_baseline_id']
+                                }
+                            }
+                        ]
+                    }
+                }
+            })
+
+    mutation_projectbaseline_predecessors = '''
+        mutation ($project: UpdateProjectBaselineInput!)  {
+            updateProjectBaseline (input: $project) {
+                numUids
+            }
+        }
+    '''
+
+    for i in variables:
+        r = requests.post(url=url, json={"query": mutation_projectbaseline_predecessors, "variables": i})
+
+        if r.status_code != 200 or 'errors' in r.json():
+            print('ERROR: record not ingested: ' + str(url) + '\n' + str(r.status_code) + '\n' + str(r.json()) + '\n' + str(query_projectbaseline))
+            raise Exception('problem with getting data')
+
+
+
+
+
+
 if __name__ == "__main__":
     # TODO: parse argv and ingest
 
