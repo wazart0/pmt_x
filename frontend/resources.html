@@ -28,6 +28,13 @@ Click me to display Date and Time.</button>
 
 
 
+<select id="project_baseline">
+	<option value="p2">P2</option>
+	<option value="Orange">Orange</option>
+	<option value="Banana">Banana</option>
+</select>
+
+
 <script type="text/babel" class="code-js">
 
     var gridData = []
@@ -98,7 +105,7 @@ Click me to display Date and Time.</button>
     // }`
 
     var query = `{
-        queryBaseline (filter: {name: {allofterms: "limited_8_sprint_5_only"}} offset: 0 first: 1) {
+        queryBaseline (filter: {name: {allofterms: "limited_11x"}} offset: 0 first: 1) {
                 id
                 name
                 resources (order: {asc: resource}) {

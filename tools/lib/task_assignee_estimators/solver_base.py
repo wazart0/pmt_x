@@ -88,7 +88,7 @@ class SolverBase():
 
     def update_projects(self):
         self.projects.drop(['start', 'finish', 'worktime'], axis=1, inplace=True)
-        self.projects = self.projects.merge(self.lp, how='left', on='project_id')
+        self.projects = self.projects.merge(self.lp[['project_id', 'start', 'finish', 'worktime']], how='left', on='project_id')
 
         while True:
             tmp = self.projects.groupby('parent_id').count()
@@ -199,12 +199,12 @@ class SolverBaseResources(SolverBase):
         self.av.project_id.loc[(self.av.project_id == project_id)] = None
 
 
-    def assign_time_first_free(self, project_id: str, resources_ids: list):
+    def assign_time_first_free(self, project_id: str, resources_ids: list, from_date: pd.Timestamp):
         lp_index = self.lp[self.lp.project_id == project_id].index[0]
 
         time_left = self.lp.at[lp_index, 'worktime']
         first = False
-        for index in self.av[self.av.resource_id.isin(resources_ids) & self.av.project_id.isnull()].sort_values(['start']).index:
+        for index in self.av[self.av.resource_id.isin(resources_ids) & self.av.project_id.isnull() & (from_date <= self.av.start)].sort_values(['start']).index:
             worktime = self.av.at[index, 'finish'] - self.av.at[index, 'start']
 
             self.av.at[index, 'project_id'] = self.lp.at[lp_index, 'project_id']

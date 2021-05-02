@@ -2,7 +2,8 @@
 
 
 import lib.pmtx_client.query_baselines as rb
-import lib.task_assignee_estimators.cpm_solver as base
+# import lib.task_assignee_estimators.cpm_solver as base
+import lib.task_assignee_estimators.last_finish_solver as base
 
 import requests
 import json
@@ -55,11 +56,11 @@ dfp.drop(columns=['id'], inplace=True)
 
 
 
-est = base.CPMsolver(dfp,dfd)
+est = base.LastFinishSolver(dfp,dfd)
 
 est.config()
 
-est.av = base.CPMsolver.create_availability_calendar(number_of_users=9)
+est.av = base.LastFinishSolver.create_availability_calendar(number_of_users=9)
 est.av['project_id'] = None
 
 algo_time_start = time()
@@ -70,7 +71,10 @@ est.initialize()
 # print(est.allocate_projects_infinite_resources())
 # print(est.create_wbs())
 # dep = est.find_circular_dependencies()
-dep = est.assign()
+# dep = est.assign()
+
+# est.allocate_projects_infinite_resources()
+dep = est.allocate_projects()
 
 
 

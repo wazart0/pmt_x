@@ -125,7 +125,7 @@ def adjust_to_query_resource_baseline(resources: pd.DataFrame, baseline_id: str)
     resource_to_parse['start'] = resource_to_parse.start.astype(str).apply(lambda val: None if val == 'NaT' else str_to_rfc(val))
     resource_to_parse['finish'] = resource_to_parse.finish.astype(str).apply(lambda val: None if val == 'NaT' else str_to_rfc(val))
 
-    resource_to_parse.rename(inplace=True, columns={"user_id": "resource"})
+    resource_to_parse.rename(inplace=True, columns={"resource_id": "resource"})
 
     resource_to_parse = resource_to_parse.to_dict(orient="records")
 
