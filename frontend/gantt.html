@@ -24,18 +24,28 @@ Click me to display Date and Time.</button>
 
 
 
+<!-- <label for="root_project">Select root:</label>
+<select id="root_project" onchange='x();'><option value=""></option></select> -->
+
+<a href="gantt.html">Gantt</a> <a href="resources.html">Resources</a> <br>
+
+
 
 <label for="project_baseline">Select baseline:</label>
 <select id="project_baseline" onchange='project_baseline_change();'><option value=""></option></select>
 
-<label for="project_baseline_compare">Select compare baseline:</label>
-<select id="project_baseline_compare" onchange='project_baseline_change();'><option value=""></option></select>
+<label for="project_baseline_compare">Select baseline compare:</label>
+<select id="project_baseline_compare" onchange='project_baseline_compare_change();'><option value=""></option></select>
 
+<button id="collapseAllButton" onclick="collapseAll()">Collapse All</button>
+<button id="expandAllButton" onclick="expandAll()">Expand All</button>
 
 
 <script type="text/babel" class="code-js">
 
-    var gridData = []
+    // var gridData = []
+
+    var anychart_data = []
 
     const url = 'http://localhost:8080/graphql'
 
@@ -47,8 +57,8 @@ Click me to display Date and Time.</button>
             id
             name
             baselines {
-            id
-            name
+                id
+                name
             }
         }
     }`
@@ -63,6 +73,15 @@ Click me to display Date and Time.</button>
     })
     .then(res => res.json())
     .then(function (rjs) {
+
+        // for (var i in rjs['data']['queryProject']) {
+        //     var option = document.createElement('option')
+        //     option.project_id = rjs['data']['queryProject'][i]['id']
+        //     option.text = rjs['data']['queryProject'][i]['name']
+
+        //     document.querySelector('#root_project').add(option, null)
+        // }
+
         function update_selector(selector_label) {
             for (var i in rjs['data']['queryProject']) {
                 var optgroup = document.createElement('optgroup');
@@ -133,10 +152,13 @@ Click me to display Date and Time.</button>
                 }
 
                 if (project['wbs'] == null) { 
-                    project['collapsed'] = false 
                     project['wbs'] = '' 
                 }
-                else { project['collapsed'] = true }
+
+                if ('parent' in project) { project['collapsed'] = true }
+                else { project['collapsed'] = false }
+
+
 
                 if (project['actual_worktime'] == null) {
                     project['actual_worktime'] = ''
@@ -161,23 +183,27 @@ Click me to display Date and Time.</button>
                             if (projects[p]['predecessors'][pred]['type'] == 'SS') { formatted[form]['connectorType'] = "start-start" }
                             if (projects[p]['predecessors'][pred]['type'] == 'FF') { formatted[form]['connectorType'] = "finish-finish" }
                         }
+                        if (formatted[form]['name'] == "P2 v3 Replatforming Tasks List.xlsx") {
+                        }
                     }
                 }
             }
         }
 
+        console.log(response)
+        console.log(formatted)
+
         return formatted
     }
 
 
-    var anychart_data = []
 
     function refresh_anychart_data() {
         if (anychart_data){
-                var treeData = anychart.data.tree(anychart_data, "as-table");  
-                chart.data(treeData);
-                chart.fitAll();
-            }
+            var treeData = anychart.data.tree(anychart_data, "as-table");  
+            chart.data(treeData);
+            chart.fitAll();
+        }
     }
 
 
@@ -221,6 +247,74 @@ Click me to display Date and Time.</button>
 
 
 
+    function get_anychart_data_pose(project_id) {
+        for (var i = 0; i < anychart_data.length; i++) {
+            if (anychart_data[i]['id'] == project_id) {
+                return i;
+            }
+        }
+        return null;
+    }
+
+
+
+    function update_anychart_data_baseline_compare(response) {
+        for (var i in response['data']['getBaseline']['projects']) {
+            var pose = get_anychart_data_pose(response['data']['getBaseline']['projects'][i]['project']['id'])
+            if (pose) {
+                if (response['data']['getBaseline']['projects'][i]['worktime']) {
+                    anychart_data[pose]['compare_worktime'] = response['data']['getBaseline']['projects'][i]['worktime']
+                } 
+                if (response['data']['getBaseline']['projects'][i]['start']) {
+                    anychart_data[pose]['baselineStart'] = response['data']['getBaseline']['projects'][i]['start']
+                }
+                if (response['data']['getBaseline']['projects'][i]['finish']) {
+                    anychart_data[pose]['baselineEnd'] = response['data']['getBaseline']['projects'][i]['finish']
+                }
+            }
+        }
+    }
+
+
+    function clean_anychart_fields(list_of_fields) {
+        for (var i = 0; i < anychart_data.length; i++) {
+            for (var j = 0; j < list_of_fields.length; j++) {
+                if (list_of_fields[j] in anychart_data[i]) {
+                    delete anychart_data[i][list_of_fields[j]]
+                }
+            }
+        }
+        refresh_anychart_data()
+    }
+
+
+    function get_baseline(baseline_id) {
+        var query = `query {
+            getBaseline(id: "` + baseline_id + `") {
+                projects {
+                    project {id}
+                    worktime
+                    start
+                    finish
+                }
+            }
+        }`
+
+        fetch(url, {
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query })
+        })
+        .then(res => res.json())
+        .then(function (rjs) {
+            update_anychart_data_baseline_compare(rjs)
+            refresh_anychart_data()
+        })
+        .catch(console.error);
+    }
+
 
 
 
@@ -261,7 +355,7 @@ Click me to display Date and Time.</button>
     chart.dataGrid().column(3).width(40);
 
     chart.dataGrid().column(4).title().text("Compare worktime")
-    chart.dataGrid().column(4).labels().format("{%planned_time}");
+    chart.dataGrid().column(4).labels().format("{%compare_worktime}");
     chart.dataGrid().column(4).width(40);
 
     chart.splitterPosition("567px");
@@ -275,15 +369,35 @@ Click me to display Date and Time.</button>
     chart.fitAll();
   
 
-
+// function 
 
 
 function project_baseline_change() {
     var actual_baseline_selector = document.querySelector('#project_baseline').selectedOptions[0]
-
     get_project_baseline(actual_baseline_selector.project_id, actual_baseline_selector.baseline_id)
+
+    document.querySelector('#project_baseline_compare').selectedIndex = 0
 }
 
+
+function project_baseline_compare_change() {
+    var compare_baseline_selector = document.querySelector('#project_baseline_compare').selectedOptions[0]
+    clean_anychart_fields(['compare_worktime', 'baselineStart', 'baselineEnd'])
+    if (compare_baseline_selector.text != "") {
+        get_baseline(compare_baseline_selector.baseline_id)
+    }
+}
+
+
+// collapse all tasks
+function collapseAll() {
+    chart.collapseAll();  
+}
+
+// expand all tasks
+function expandAll() {
+    chart.expandAll();  
+}
 
 
 </script>

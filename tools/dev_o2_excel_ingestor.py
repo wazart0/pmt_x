@@ -20,6 +20,7 @@ def str_to_rfc(datetime):
 def check_wbs_duplicates(wbs_list):
     for wbs in wbs_list:
         if wbs_list.count(wbs) > 1:
+            print('Duplicate WBS:', wbs)
             return True
     return False
 
@@ -184,8 +185,8 @@ def generate_rdf_from_xlsx(path, filename, project_name = None):
     wbs_list = retrieve_wbs_from_sheets(sheets, schema)
 
     if check_wbs_duplicates(wbs_list):
-        print("ERROR: Duplicates in WBS across sheets !!!")
-        return None
+        raise Exception("ERROR: Duplicates in WBS across sheets !!!")
+        # return None
     if project_name is None:
         project_name = filename
     return generate_RDF_for_new_project(sheets, schema, wbs_list, project_name)

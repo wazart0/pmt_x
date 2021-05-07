@@ -22,31 +22,35 @@ Click me to display Date and Time.</button>
 
 <!-- <script type="text/javascript" src="./example_data.js"></script> -->
 
-<label for="dataGridCheckbox">Edit Data Grid</label>
-<input type="checkbox" id="dataGridCheckbox" onchange="editDataGrid()">
-<button onclick="resetGrid()">Reset</button>
+
+<a href="gantt.html">Gantt</a> <a href="resources.html">Resources</a> <br>
 
 
+<label for="project_baseline">Select baseline:</label>
+<select id="project_baseline" onchange='project_baseline_change();'><option value=""></option></select>
 
-<select id="project_baseline">
-	<option value="p2">P2</option>
-	<option value="Orange">Orange</option>
-	<option value="Banana">Banana</option>
-</select>
+
 
 
 <script type="text/babel" class="code-js">
 
-    var gridData = []
+    // var gridData = []
+
+    var anychart_data = []
 
     const url = 'http://localhost:8080/graphql'
 
 
 
 
-    var query = `{
-        queryPresentationSetup(filter: {tool: {allofterms: "tui"} and: {name: {allofterms: "Development"}}}) {
-            schema
+    var query = `query {
+        queryProject (filter: {has: baselines}) {
+            id
+            name
+            baselines {
+                id
+                name
+            }
         }
     }`
 
@@ -60,16 +64,32 @@ Click me to display Date and Time.</button>
     })
     .then(res => res.json())
     .then(function (rjs) {
-        var col = JSON.parse(rjs['data']['queryPresentationSetup'][0]['schema']);
 
-        // grid.setColumns(col['columns'])
-        // grid.setHeader({
-        //         height: 50,
-        //         complexColumns: col['complexColumns'],
-        //     })
+        function update_selector(selector_label) {
+            for (var i in rjs['data']['queryProject']) {
+                var optgroup = document.createElement('optgroup');
+                optgroup.label = rjs['data']['queryProject'][i]['name']
 
+                document.querySelector(selector_label).add(optgroup, null)
+                
+                for (var j in rjs['data']['queryProject'][i]['baselines']) {
+                    var option = document.createElement('option')
+                    option.project_id = rjs['data']['queryProject'][i]['id']
+                    option.baseline_id = rjs['data']['queryProject'][i]['baselines'][j]['id']
+                    option.text = '- ' + rjs['data']['queryProject'][i]['baselines'][j]['name']
+
+                    document.querySelector(selector_label).add(option, null)
+                }
+            }
+        }
+
+        update_selector('#project_baseline')
     })
     .catch(console.error);
+
+
+
+
 
 
 
@@ -86,52 +106,14 @@ Click me to display Date and Time.</button>
 
 
 
-    // var query = `{
-    //     #queryProject (filter: {has: baselines}) {
-    //     queryProject (filter: {name: {allofterms: "P2 v3 Replatforming Tasks List.xlsx"}}) {
-    //         baselines (order: {desc: name}) {
-    //             name
-    //             projects (order: {asc: wbs}) {
-    //                 project {id name description customFields}
-    //                 wbs
-    //                 worktime
-    //                 start
-    //                 finish
-    //                 parent {project {id}}
-    //                 predecessors {type project {project {id}}}
-    //             }
-    //         }
-    //     }
-    // }`
-
-    var query = `{
-        queryBaseline (filter: {name: {allofterms: "limited_11x"}} offset: 0 first: 1) {
-                id
-                name
-                resources (order: {asc: resource}) {
-                    id
-                    resource
-                    project {id}
-                    start
-                    finish
-            }
-        }
-    }`
 
 
-    fetch(url, {
-        method: 'post',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ query })
-    })
-    .then(res => res.json())
-    .then(function (rjs) {
+
+    function parse_response_project_query(response) {
         var formatted = []
         var s;
-        for (s in rjs['data']['queryBaseline']) {
-            var resources = rjs['data']['queryBaseline'][s]['resources']
+        for (s in response['data']['queryBaseline']) {
+            var resources = response['data']['queryBaseline'][s]['resources']
             var r
             for (r in resources) {
                 var resource = find_resource(formatted, resources[r]['resource'])
@@ -150,14 +132,44 @@ Click me to display Date and Time.</button>
             }
         }
 
-        // console.log(projects)
-        console.log(formatted)
+        return formatted
+    }
 
-        var treeData = anychart.data.tree(formatted, "as-table");  
-        chart.data(treeData);
 
-    })
-    .catch(console.error);
+
+    function get_project_baseline(baseline_id) {
+        var query = `{
+            queryBaseline (filter: {id: ["` + baseline_id + `"]} offset: 0 first: 1) {
+                    id
+                    name
+                    resources (order: {asc: resource}) {
+                        id
+                        resource
+                        project {id}
+                        start
+                        finish
+                }
+            }
+        }`
+
+
+        fetch(url, {
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query })
+        })
+        .then(res => res.json())
+        .then(function (rjs) {
+            anychart_data = parse_response_project_query(rjs)
+
+            var treeData = anychart.data.tree(anychart_data, "as-table");  
+            chart.data(treeData);
+            chart.fitAll();
+        })
+        .catch(console.error);
+    }
 
 
 
@@ -179,12 +191,9 @@ Click me to display Date and Time.</button>
     chart.fitAll();
   
 
-function editDataGrid() {
-  if (document.getElementById("dataGridCheckbox").checked) { 
-    chart.dataGrid().edit(true);
-  } else {
-    chart.dataGrid().edit(false);
-  }
+function project_baseline_change() {
+    var actual_baseline_selector = document.querySelector('#project_baseline').selectedOptions[0]
+    get_project_baseline(actual_baseline_selector.baseline_id)
 }
 
 

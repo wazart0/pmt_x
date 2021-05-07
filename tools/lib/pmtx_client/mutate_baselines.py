@@ -27,17 +27,22 @@ def add_child_to_parent(list: list, id: str, child: str) -> None:
 
 
 def adjust_to_query_project_baseline(projects: pd.DataFrame, baseline_id: str, root_id: str) -> str:
-    projects_to_parse = projects.copy(deep=True)
+    project_baseline = [{
+        "baseline": {"id": baseline_id},
+        "project": {"id": root_id},
+        "start": str_to_rfc(str(projects[projects.start.notnull()].start.min())),
+        "finish": str_to_rfc(str(projects[projects.finish.notnull()].finish.max())),
+        "worktime": str(float(projects[projects.worktime.notnull()].worktime.sum().total_seconds())/3600.) + 'h',
+        "children": []
+    }]
+
+    projects_to_parse = projects[projects.project_id != root_id].copy(deep=True)
+    projects_to_parse.loc[projects_to_parse.parent_id == root_id, 'parent_id'] = None
 
     projects_to_parse['worktime'] = projects_to_parse.worktime.apply(lambda val: str(float(val.total_seconds())/3600.) + 'h')
     projects_to_parse['start'] = projects_to_parse.start.astype(str).apply(lambda val: None if val == 'NaT' else str_to_rfc(val))
     projects_to_parse['finish'] = projects_to_parse.finish.astype(str).apply(lambda val: None if val == 'NaT' else str_to_rfc(val))
 
-    project_baseline = [{
-        "baseline": {"id": baseline_id},
-        "project": {"id": root_id},
-        "children": []
-    }]
     children = projects_to_parse[projects_to_parse.parent_id.isnull()]
     children['parent_id'] = root_id
     while children.shape[0]:
@@ -52,6 +57,7 @@ def adjust_to_query_project_baseline(projects: pd.DataFrame, baseline_id: str, r
             add_child_to_parent(project_baseline, parent_id, child)
         # return project_baseline
         children = projects_to_parse[projects_to_parse.parent_id.isin(children.project_id)]
+
     return project_baseline
 
 
@@ -104,6 +110,8 @@ def add_project_baseline(url: str, projects: pd.DataFrame, baseline_id: str, roo
     '''
 
     r = requests.post(url=url, json={"query": mutation_project_baseline, "variables": {"projects": project_baseline}})
+
+    print(r.json())
 
     if r.status_code != 200 \
         or 'errors' in r.json() \
