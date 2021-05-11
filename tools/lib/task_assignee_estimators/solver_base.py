@@ -195,16 +195,62 @@ class SolverBaseResources(SolverBase):
         self.av.astype(dtype={'resource_id': 'int64', 'start': 'datetime64[ns]', 'finish': 'datetime64[ns]'})
 
 
-    def unassign_project_from_resources(self, project_id):
+    def deallocate_project_from_resources(self, project_id):
         self.av.project_id.loc[(self.av.project_id == project_id)] = None
 
 
-    def assign_time_first_free(self, project_id: str, resources_ids: list, from_date: pd.Timestamp):
+    def allocate_time_first_free_slot(self, project_id: str, resources_ids: list, from_date: pd.Timestamp):
+        lp_index = self.lp[self.lp.project_id == project_id].index[0]
+
+        time_left = self.lp.at[lp_index, 'worktime']
+        first = True
+        for index in self.av[self.av.resource_id.isin(resources_ids) & self.av.project_id.isnull() & (from_date <= self.av.start)].sort_values(['start']).index:
+            if time_left == pd.Timedelta(0, 's') and first:
+                self.lp.at[lp_index, 'start'] = self.av.at[index, 'start']
+                self.lp.at[lp_index, 'finish'] = self.av.at[index, 'start']
+                return
+
+            worktime = self.av.at[index, 'finish'] - self.av.at[index, 'start']
+
+            self.av.at[index, 'project_id'] = self.lp.at[lp_index, 'project_id']
+
+            if first:
+                self.lp.at[lp_index, 'start'] = self.av.at[index, 'start']
+                first = False
+
+            if time_left == worktime:
+                self.lp.at[lp_index, 'finish'] = self.av.at[index, 'finish']
+                return
+            elif time_left < worktime:
+                new_row = self.av.loc[index].copy(deep=True)
+                new_row['project_id'] = None
+                self.av.at[index, 'finish'] = self.av.at[index, 'start'] + time_left
+                new_row['start'] = self.av.at[index, 'finish']
+                self.av.loc[self.av.shape[0]] = new_row
+                self.lp.at[lp_index, 'finish'] = self.av.at[index, 'finish']
+                return
+
+            time_left -= worktime
+        raise Exception("No more available time in calendar.")
+
+
+    def allocate_time_continuous_per_project(self, project_id: str, resources_ids: list, from_date: pd.Timestamp):
         lp_index = self.lp[self.lp.project_id == project_id].index[0]
 
         time_left = self.lp.at[lp_index, 'worktime']
         first = False
-        for index in self.av[self.av.resource_id.isin(resources_ids) & self.av.project_id.isnull() & (from_date <= self.av.start)].sort_values(['start']).index:
+        for index in self.av[self.av.resource_id.isin(resources_ids) & (from_date <= self.av.start)].sort_values(['start']).index:
+            if time_left == pd.Timedelta(0, 's') and first:
+                self.lp.at[lp_index, 'start'] = self.av.at[index, 'start']
+                self.lp.at[lp_index, 'finish'] = self.av.at[index, 'start']
+                return
+            
+            if self.av.at[index, 'project_id'] is not None:
+                time_left = self.lp.at[lp_index, 'worktime']
+                first = False
+                self.av.loc[self.av.project_id == self.lp.at[lp_index, 'project_id'], 'project_id'] = None
+                continue
+
             worktime = self.av.at[index, 'finish'] - self.av.at[index, 'start']
 
             self.av.at[index, 'project_id'] = self.lp.at[lp_index, 'project_id']
@@ -217,9 +263,9 @@ class SolverBaseResources(SolverBase):
                 self.lp.at[lp_index, 'finish'] = self.av.at[index, 'finish']
                 return
             elif time_left < worktime:
-                new_row = self.av.loc[index]
+                new_row = self.av.loc[index].copy(deep=True)
                 new_row['project_id'] = None
-                self.av.at[index, 'finish'] -= time_left
+                self.av.at[index, 'finish'] = self.av.at[index, 'start'] + time_left
                 new_row['start'] = self.av.at[index, 'finish']
                 self.av.loc[self.av.shape[0]] = new_row
                 self.lp.at[lp_index, 'finish'] = self.av.at[index, 'finish']

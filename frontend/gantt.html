@@ -338,12 +338,12 @@ Click me to display Date and Time.</button>
     chart.dataGrid().column(0).collapseExpandButtons(true);
     chart.dataGrid().column(0).width(10);
 
-    chart.dataGrid().column(1).title().text("Jira ID");
+    chart.dataGrid().column(1).title().text("ID");
     chart.dataGrid().column(1).depthPaddingMultiplier(0);
     chart.dataGrid().column(1).collapseExpandButtons(false);
     chart.dataGrid().column(1).width(60);
     chart.dataGrid().column(1).labels().useHtml(true);
-    chart.dataGrid().column(1).labels().format("<a href='{%jira_link}'>{%jira_id}</a>");
+    chart.dataGrid().column(1).labels().format("<a href='{%jira_link}'>{%id}</a>");
 
 
     chart.dataGrid().column(2).title().text("Name")
