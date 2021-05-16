@@ -14,7 +14,7 @@ import lib.jira.jira as jira
 
 
 
-def sync_default_baseline_with_jira(baseline_id: str, url: str, jira_info: dict) -> None:
+def sync_default_baseline_from_jira(baseline_id: str, url: str, jira_info: dict) -> None:
 
     query = '''
         query ($baseline_id :ID!) {
@@ -87,4 +87,4 @@ if __name__ == "__main__":
 
     baseline_id = "0x2df2"
 
-    sync_default_baseline_with_jira(baseline_id, url, jira_info)
+    sync_default_baseline_from_jira(baseline_id, url, jira_info)
