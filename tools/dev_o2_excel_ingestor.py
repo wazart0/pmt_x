@@ -227,6 +227,8 @@ if __name__ == "__main__":
     ]
 
     for filename in filenames:
+        print("Ingesting: ", filename)
         rdf = generate_rdf_from_xlsx('./tools/', filename)
         send_rdf_to_dgraph('localhost:9080', rdf)
+        print("Finished ingestion: ", filename)
 

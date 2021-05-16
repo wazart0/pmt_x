@@ -44,7 +44,7 @@ def adjust_to_query_project_baseline(projects: pd.DataFrame, baseline_id: str, r
     projects_to_parse['finish'] = projects_to_parse.finish.astype(str).apply(lambda val: None if val == 'NaT' else str_to_rfc(val))
 
     children = projects_to_parse[projects_to_parse.parent_id.isnull()]
-    children['parent_id'] = root_id
+    children.loc['parent_id'] = root_id
     while children.shape[0]:
         for child in json.loads(children.to_json(orient="records")):
             child['baseline'] = {"id": baseline_id}

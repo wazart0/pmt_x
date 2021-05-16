@@ -1,5 +1,5 @@
 import pandas as pd
-from tools.lib.task_assignee_estimators.solver_base import SolverBase, SolverBaseResources
+from lib.task_assignee_estimators.solver_base import SolverBase, SolverBaseResources
 
 from time import time
 
@@ -24,14 +24,18 @@ class LastFinishSolver(SolverBaseResources): ## ideological reasons caused stop 
 
         while True:
 
-            window = self.infinite_plan.lp[self.infinite_plan.lp.project_id.isin(self.lp[self.lp.finish.isnull()].project_id)]
+            window = self.infinite_plan.lp[self.infinite_plan.lp.project_id.isin(self.lp[self.lp.finish.isnull()].project_id) & (~self.infinite_plan.lp.project_id.isin(exclude_projects))]
+            print(window.project_id.to_list())
             last_finish_unallocated = window[window.finish == window.finish.max()].project_id
 
             if len(last_finish_unallocated) == 0: 
                 break
 
-            # if 
-            self.allocate_project_and_its_predecesors(last_finish_unallocated.iat[0], exclude_projects)
+            result = self.allocate_project_and_its_predecesors(last_finish_unallocated.iat[0], exclude_projects)
+            if result == False and len(exclude_projects) != 0:
+                exclude_projects = exclude_projects + [last_finish_unallocated.iat[0]]
+
+
 
 
 
@@ -53,7 +57,10 @@ class LastFinishSolver(SolverBaseResources): ## ideological reasons caused stop 
 
 
     def allocate_project_first_fitting(self, project_id: str, minimal_project_start: pd.Timestamp, exclude_projects = []):
-        if self.lp[(self.lp.project_id == project_id) & self.lp.finish.notnull()].shape[0] == 0 and project_id not in exclude_projects: ## allocate if not allocated yet
+        if project_id in exclude_projects: # TODO: check if can go infinite, possibly yes
+            return False
+
+        if self.lp[(self.lp.project_id == project_id) & self.lp.finish.notnull()].shape[0] == 0: ## allocate if not allocated yet
             resource_id = [self.get_first_free_resource_id(minimal_project_start)]
             # self.allocate_time_first_free_slot(project_id, resource_id, minimal_project_start)
             self.allocate_time_continuous_per_project(project_id, resource_id, minimal_project_start)
@@ -62,9 +69,7 @@ class LastFinishSolver(SolverBaseResources): ## ideological reasons caused stop 
             y = self.lp[self.lp.project_id == project_id].worktime.iat[0]
             if y.total_seconds() != 0 and y != x:
                 raise Exception("Badly allocated project: " + project_id + ", worktime: " + str(y) + ", allocated worktime: " + str(x))
-            return True
-        return False
-
+        return True
 
 
     def allocate_project_and_its_predecesors(self, project_id, exclude_projects = []): # allocate predecessors in some way
@@ -74,18 +79,26 @@ class LastFinishSolver(SolverBaseResources): ## ideological reasons caused stop 
         # print('Number of projects in tree:', len(projects_in_branch))
 
         if len(projects_in_branch) == 1: # if no predecessors then assign
-            self.allocate_project_first_fitting(project_id, self.project_start, exclude_projects)
-            return
+            return self.allocate_project_first_fitting(project_id, self.project_start, exclude_projects)
 
         ## projects without any dependencies for initial round
         projects_to_allocate = self.ld[(~self.ld.predecessor_id.isin(self.ld.project_id)) & self.ld.project_id.isin(projects_in_branch)].predecessor_id.unique()
 
+
+        project_allocated = False
+
         for p_id in projects_to_allocate:
-            self.allocate_project_first_fitting(p_id, self.project_start, exclude_projects)
+            if self.allocate_project_first_fitting(p_id, self.project_start, exclude_projects):
+                project_allocated = True
+
+        if project_allocated == False:
+            return project_allocated
 
         projects_to_allocate_next_iter = []
 
         while True:
+            project_allocated = False
+
             projects_to_allocate = list(self.ld[self.ld.predecessor_id.isin(projects_to_allocate) & self.ld.project_id.isin(projects_in_branch)].project_id.unique()) # get successors
             projects_to_allocate = projects_to_allocate_next_iter + projects_to_allocate
 
@@ -99,7 +112,13 @@ class LastFinishSolver(SolverBaseResources): ## ideological reasons caused stop 
                     continue
 
                 predecessor_finish = self.lp[self.lp.project_id.isin(self.ld[self.ld.project_id == p_id].predecessor_id)].finish.max()
-                self.allocate_project_first_fitting(p_id, predecessor_finish, exclude_projects)
+                if self.allocate_project_first_fitting(p_id, predecessor_finish, exclude_projects):
+                    project_allocated = True
+
+            if project_allocated == False:
+                break
+                
+        return project_allocated
 
 
         # print('Final number of allocated projects:', self.lp[self.lp.finish.notnull()].shape[0])

@@ -16,6 +16,8 @@ Click me to display Date and Time.</button>
 <script src="https://cdn.anychart.com/releases/8.9.0/js/anychart-core.min.js" type="text/javascript"></script>
 <script src="https://cdn.anychart.com/releases/8.9.0/js/anychart-gantt.min.js" type="text/javascript"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/jsframe.js/lib/jsframe.min.js"></script>
+
 <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
 
 
@@ -39,6 +41,10 @@ Click me to display Date and Time.</button>
 
 <button id="collapseAllButton" onclick="collapseAll()">Collapse All</button>
 <button id="expandAllButton" onclick="expandAll()">Expand All</button>
+
+
+<button id="editbutton" onclick="edit()">edit</button>
+
 
 
 <script type="text/babel" class="code-js">
@@ -367,7 +373,9 @@ Click me to display Date and Time.</button>
     chart.container("container");
     chart.draw();
     chart.fitAll();
-  
+
+
+
 
 // function 
 
@@ -400,7 +408,23 @@ function expandAll() {
 }
 
 
+function edit() { 
+    const jsFrame = new JSFrame();
+    //Create window
+    const frame = jsFrame.create({
+        title: 'Window',
+        left: 300, top: 300, width: 320, height: 220,
+        movable: true,//Enable to be moved by mouse
+        resizable: true,//Enable to be resized by mouse
+        // html: '<div id="my_element" style="padding:10px;font-size:12px;color:darkgray;">Contents of window</div>'
+        html: '<div id="my_element" style="padding:10px;font-size:12px;color:darkgray;">Implement task modification (open jira)</div>'
+    }).show()
+}
+
+
 </script>
+
+
 
 <div style="height: 700px;" id="container"></div>
 
