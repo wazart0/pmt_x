@@ -29,9 +29,28 @@ Click me to display Date and Time.</button>
 <!-- <label for="root_project">Select root:</label>
 <select id="root_project" onchange='x();'><option value=""></option></select> -->
 
-<a href="gantt.html">Gantt</a> <a href="resources.html">Resources</a> <br>
+<a href="gantt.html">Gantt</a> <a href="resources.html">Resources</a> 
 
+<br><b>Project filters:</b>
 
+<label for="filter_baseline_1">baseline=</label>
+<select id="filter_baseline_1" onchange='filter_baseline();'><option value=""></option></select>
+<b>or</b>
+<label for="filter_baseline_2">baseline=</label>
+<select id="filter_baseline_2" onchange='filter_baseline();'><option value=""></option></select>
+<b>or</b>
+<label for="filter_baseline_3">baseline=</label>
+<select id="filter_baseline_3" onchange='filter_baseline();'><option value=""></option></select>
+<b>or</b>
+<label for="filter_baseline_4">baseline=</label>
+<select id="filter_baseline_4" onchange='filter_baseline();'><option value=""></option></select>
+
+<b>and</b>
+
+<label for="project_name">project.name~</label>
+<input id="project_name" type="text" maxlength="512" class="searchField" onchange='filter_root();'/>
+
+<br>
 
 <label for="project_baseline">Select baseline:</label>
 <select id="project_baseline" onchange='project_baseline_change();'><option value=""></option></select>
@@ -62,6 +81,50 @@ Click me to display Date and Time.</button>
         queryProject (filter: {has: baselines}) {
             id
             name
+        }
+    }`
+
+
+    fetch(url, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+
+        function update_selector(selector_label) {
+            for (var i in rjs['data']['queryProject']) {
+                var option = document.createElement('option')
+                option.value = rjs['data']['queryProject'][i]['id']
+                option.project_id = rjs['data']['queryProject'][i]['id']
+                option.text = rjs['data']['queryProject'][i]['name']
+
+                document.querySelector(selector_label).add(option, null)
+            }
+        }
+
+        // update_selector('#filter_root')
+        // if (rjs['data']['queryProject'].length == 1) {
+        //     document.querySelector('#filter_root').value = rjs['data']['queryProject'][0]['id']
+        // }
+        // console.log(document.querySelector('#filter_root').selectedOptions[0].project_id)
+
+    })
+    .catch(console.error);
+
+
+
+
+
+
+
+    var query = `query {
+        queryProject (filter: {has: baselines}) {
+            id
+            name
             baselines {
                 id
                 name
@@ -80,15 +143,23 @@ Click me to display Date and Time.</button>
     .then(res => res.json())
     .then(function (rjs) {
 
-        // for (var i in rjs['data']['queryProject']) {
-        //     var option = document.createElement('option')
-        //     option.project_id = rjs['data']['queryProject'][i]['id']
-        //     option.text = rjs['data']['queryProject'][i]['name']
 
-        //     document.querySelector('#root_project').add(option, null)
-        // }
+        function update_selector_baseline_id(selector_label) {
 
-        function update_selector(selector_label) {
+            for (var i in rjs['data']['queryProject']) {                
+                for (var j in rjs['data']['queryProject'][i]['baselines']) {
+                    var option = document.createElement('option')
+                    option.project_id = rjs['data']['queryProject'][i]['id']
+                    option.baseline_id = rjs['data']['queryProject'][i]['baselines'][j]['id']
+                    option.text = rjs['data']['queryProject'][i]['baselines'][j]['id']
+                    option.title = rjs['data']['queryProject'][i]['name'] + ' / ' + rjs['data']['queryProject'][i]['baselines'][j]['name']
+
+                    document.querySelector(selector_label).add(option, null)
+                }
+            }
+        }
+
+        function update_selector_with_labels(selector_label) {
             for (var i in rjs['data']['queryProject']) {
                 var optgroup = document.createElement('optgroup');
                 optgroup.label = rjs['data']['queryProject'][i]['name']
@@ -106,8 +177,13 @@ Click me to display Date and Time.</button>
             }
         }
 
-        update_selector('#project_baseline')
-        update_selector('#project_baseline_compare')
+        update_selector_baseline_id('#filter_baseline_1')
+        update_selector_baseline_id('#filter_baseline_2')
+        update_selector_baseline_id('#filter_baseline_3')
+        update_selector_baseline_id('#filter_baseline_4')
+
+        update_selector_with_labels('#project_baseline')
+        update_selector_with_labels('#project_baseline_compare')
     })
     .catch(console.error);
 

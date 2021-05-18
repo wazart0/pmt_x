@@ -14,7 +14,7 @@ import lib.jira.jira as jira
 
 
 
-def sync_default_baseline_from_jira(baseline_id: str, url: str, jira_info: dict) -> None:
+def sync_baseline_from_jira(baseline_id: str, url: str, jira_info: dict) -> None:
 
     query = '''
         query ($baseline_id :ID!) {
@@ -29,14 +29,6 @@ def sync_default_baseline_from_jira(baseline_id: str, url: str, jira_info: dict)
 
     query_variables = {"baseline_id": baseline_id}
 
-    mutation = '''
-        mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
-            updateProjectBaseline (input: {filter: {id: [$project_baseline_id]} set: $fields}) {
-                numUids
-            }
-        }
-    '''
-
 
     r = requests.post(url=url, json={"query": query, "variables": query_variables})
 
@@ -45,6 +37,16 @@ def sync_default_baseline_from_jira(baseline_id: str, url: str, jira_info: dict)
         raise Exception('problem with getting data')
 
 
+
+
+
+    mutation = '''
+        mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
+            updateProjectBaseline (input: {filter: {id: [$project_baseline_id]} set: $fields}) {
+                numUids
+            }
+        }
+    '''
 
     for project in r.json()['data']['getBaseline']['projects']:
         if project['project']['customFields']:
@@ -87,4 +89,4 @@ if __name__ == "__main__":
 
     baseline_id = "0x2df2"
 
-    sync_default_baseline_from_jira(baseline_id, url, jira_info)
+    sync_baseline_from_jira(baseline_id, url, jira_info)
