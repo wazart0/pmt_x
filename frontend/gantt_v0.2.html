@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<!-- <h1>My First JavaScript</h1>
+
+<button type="button"
+onclick="document.getElementById('demo').innerHTML = Date()">
+Click me to display Date and Time.</button>
+
+<p id="demo"></p> -->
+
+
+<!-- <link rel="stylesheet" href="https://uicdn.toast.com/grid/latest/tui-grid.css" /> -->
+
+<script src="https://cdn.anychart.com/releases/8.9.0/js/anychart-core.min.js" type="text/javascript"></script>
+<script src="https://cdn.anychart.com/releases/8.9.0/js/anychart-gantt.min.js" type="text/javascript"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/jsframe.js/lib/jsframe.min.js"></script>
+
+<script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+
+
+
+<!-- <script type="text/javascript" src="./example_data.js"></script> -->
+
+
+
+<!-- <label for="root_project">Select root:</label>
+<select id="root_project" onchange='x();'><option value=""></option></select> -->
+
+<a href="gantt.html">Gantt</a> <a href="resources.html">Resources</a> 
+
+<br><b>Project filters:</b>
+
+<label for="filter_baseline_1">baseline=</label>
+<select id="filter_baseline_1" onchange='get_filtered_projects();'><option value=""></option></select>
+<b>or</b>
+<label for="filter_baseline_2">baseline=</label>
+<select id="filter_baseline_2" onchange='get_filtered_projects();'><option value=""></option></select>
+<b>or</b>
+<label for="filter_baseline_3">baseline=</label>
+<select id="filter_baseline_3" onchange='get_filtered_projects();'><option value=""></option></select>
+<b>or</b>
+<label for="filter_baseline_4">baseline=</label>
+<select id="filter_baseline_4" onchange='get_filtered_projects();'><option value=""></option></select>
+
+<b>and</b>
+
+<label for="project_name_regex">project.name~</label>
+<input id="project_name_regex" type="text" maxlength="512" class="searchField" onchange='get_filtered_projects();'/>
+
+<br>
+
+<label for="project_baseline">Select baseline:</label>
+<select id="project_baseline" onchange='project_baseline_change();'><option value=""></option></select>
+
+<label for="project_baseline_compare">Select baseline compare:</label>
+<select id="project_baseline_compare" onchange='project_baseline_compare_change();'><option value=""></option></select>
+
+<button id="collapseAllButton" onclick="collapseAll()">Collapse All</button>
+<button id="expandAllButton" onclick="expandAll()">Expand All</button>
+
+
+<button id="editbutton" onclick="edit()">edit</button>
+
+
+<label for="auto_assign">Auto assign (double click)</label>
+<input type="checkbox" id="auto_assign">
+
+
+
+<script type="text/babel" class="code-js">
+
+    // var gridData = []
+
+    var anychart_data = []
+
+    const url = 'http://localhost:8080/'
+
+    const url_graphql = url + 'graphql'
+    const url_query = url + 'query'
+
+
+
+
+    var query = `query {
+        queryProject (filter: {has: baselines}) {
+            id
+            name
+        }
+    }`
+
+
+    fetch(url_graphql, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+
+        function update_selector(selector_label) {
+            for (var i in rjs['data']['queryProject']) {
+                var option = document.createElement('option')
+                option.value = rjs['data']['queryProject'][i]['id']
+                option.project_id = rjs['data']['queryProject'][i]['id']
+                option.text = rjs['data']['queryProject'][i]['name']
+
+                document.querySelector(selector_label).add(option, null)
+            }
+        }
+
+        // update_selector('#filter_root')
+        // if (rjs['data']['queryProject'].length == 1) {
+        //     document.querySelector('#filter_root').value = rjs['data']['queryProject'][0]['id']
+        // }
+        // console.log(document.querySelector('#filter_root').selectedOptions[0].project_id)
+
+    })
+    .catch(console.error);
+
+
+
+
+
+
+
+    var query = `query {
+        queryProject (filter: {has: baselines}) {
+            id
+            name
+            baselines {
+                id
+                name
+            }
+        }
+    }`
+
+
+    fetch(url_graphql, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+
+
+        function update_selector_baseline_id(selector_label) {
+
+            for (var i in rjs['data']['queryProject']) {                
+                for (var j in rjs['data']['queryProject'][i]['baselines']) {
+                    var option = document.createElement('option')
+                    option.project_id = rjs['data']['queryProject'][i]['id']
+                    option.baseline_id = rjs['data']['queryProject'][i]['baselines'][j]['id']
+                    option.text = rjs['data']['queryProject'][i]['baselines'][j]['id']
+                    option.title = rjs['data']['queryProject'][i]['name'] + ' / ' + rjs['data']['queryProject'][i]['baselines'][j]['name']
+
+                    document.querySelector(selector_label).add(option, null)
+                }
+            }
+        }
+
+        function update_selector_with_labels(selector_label) {
+            for (var i in rjs['data']['queryProject']) {
+                var optgroup = document.createElement('optgroup');
+                optgroup.label = rjs['data']['queryProject'][i]['name']
+
+                document.querySelector(selector_label).add(optgroup, null)
+                
+                for (var j in rjs['data']['queryProject'][i]['baselines']) {
+                    var option = document.createElement('option')
+                    option.project_id = rjs['data']['queryProject'][i]['id']
+                    option.baseline_id = rjs['data']['queryProject'][i]['baselines'][j]['id']
+                    option.text = '- ' + rjs['data']['queryProject'][i]['baselines'][j]['name']
+
+                    document.querySelector(selector_label).add(option, null)
+                }
+            }
+        }
+
+        update_selector_baseline_id('#filter_baseline_1')
+        update_selector_baseline_id('#filter_baseline_2')
+        update_selector_baseline_id('#filter_baseline_3')
+        update_selector_baseline_id('#filter_baseline_4')
+
+        update_selector_with_labels('#project_baseline')
+        update_selector_with_labels('#project_baseline_compare')
+    })
+    .catch(console.error);
+
+
+
+
+    function get_pose(project_id, list_of_projects) {
+        for (var i = 0; i < list_of_projects.length; i++) {
+            if (list_of_projects[i]['project']['id'] == project_id) {
+                return i;
+            }
+        }
+        return null;
+    }
+
+
+
+    function parse_filtered_projects(rjs) {
+        var formatted = []
+        var projects = rjs['data']['projects']
+        for (var p in projects) {
+            var project = {
+                    'id': projects[p]['id'],
+                    'name': projects[p]['name'], 
+                    'description': projects[p]['description']
+                }
+
+            if (projects[p]['customFields']) {
+                var custom = JSON.parse(projects[p]['customFields'])
+                var pr;
+                for (pr in custom) {
+                    project[pr] = custom[pr]
+                }
+            }
+
+            if ('jira_id' in project) {
+                project['jira_link'] = "https://tangramcare.atlassian.net/browse/" + project['jira_id']
+            }
+
+            if (project['wbs'] == null) { // TODO: remove and get from projectbaseline
+                project['wbs'] = '' 
+            }
+
+            formatted.push(project)
+        }
+
+        return formatted
+    }
+
+
+
+    function get_filtered_projects() {
+        
+        if (document.querySelector('#filter_baseline_1').selectedOptions[0].value == "" & 
+            document.querySelector('#filter_baseline_2').selectedOptions[0].value == "" &
+            document.querySelector('#filter_baseline_3').selectedOptions[0].value == "" &
+            document.querySelector('#filter_baseline_4').selectedOptions[0].value == "") {
+                var query = `query v($baselines: string, $name_regex: string) { var (func: type(Baseline)) { Baseline.projects { ProjectBaseline.project { B as uid } } } projects (func: uid(B)) @filter(regexp(Project.name, $name_regex)) { id: uid name: Project.name description: Project.description customFields: Project.customFields } }`
+        }
+        else {
+            var query = `query v($baselines: string, $name_regex: string) { var (func: type(Baseline)) @filter(uid($baselines)) { Baseline.projects { ProjectBaseline.project { B as uid } } } projects (func: uid(B)) @filter(regexp(Project.name, $name_regex)) { id: uid name: Project.name description: Project.description customFields: Project.customFields } }`
+        }
+        
+
+        var variables = {
+            "$baselines": "[" + 
+            document.querySelector('#filter_baseline_1').selectedOptions[0].text + "," +
+            document.querySelector('#filter_baseline_2').selectedOptions[0].text + "," +
+            document.querySelector('#filter_baseline_3').selectedOptions[0].text + "," +
+            document.querySelector('#filter_baseline_4').selectedOptions[0].text + "," +
+            "]",
+            "$name_regex": "/" + document.getElementById('project_name_regex').value + "/"
+        }
+
+        console.log(variables)
+
+        fetch(url_query, {
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query, variables })
+        })
+        .then(res => res.json())
+        .then(function (rjs) {
+            anychart_data = parse_filtered_projects(rjs)
+            
+            refresh_anychart_data()
+
+            // update_anychart_data_baseline(rjs) TODO: FIXME
+            // update_anychart_data_baseline_compare(rjs)
+            document.querySelector('#project_baseline').selectedIndex = 0
+            document.querySelector('#project_baseline_compare').selectedIndex = 0
+        })
+        .catch(console.error);
+    }
+
+    get_filtered_projects()
+
+
+    function refresh_anychart_data() {
+        if (anychart_data){
+            var treeData = anychart.data.tree(anychart_data, "as-table");  
+            chart.data(treeData);
+            chart.fitAll();
+        }
+    }
+
+
+
+    function get_anychart_data_pose(project_id) {
+        for (var i = 0; i < anychart_data.length; i++) {
+            if (anychart_data[i]['id'] == project_id) {
+                return i;
+            }
+        }
+        return null;
+    }
+
+
+
+    function update_anychart_data_baseline(response) {
+        for (var i in response['data']['getBaseline']['projects']) {
+            var pose = get_anychart_data_pose(response['data']['getBaseline']['projects'][i]['project']['id'])
+            if (pose) {
+                if (response['data']['getBaseline']['projects'][i]['wbs']) {
+                    anychart_data[pose]['wbs'] = response['data']['getBaseline']['projects'][i]['wbs']
+                } 
+                if (response['data']['getBaseline']['projects'][i]['worktime']) {
+                    anychart_data[pose]['actual_worktime'] = response['data']['getBaseline']['projects'][i]['worktime']
+                } 
+                if (response['data']['getBaseline']['projects'][i]['start']) {
+                    anychart_data[pose]['actualStart'] = response['data']['getBaseline']['projects'][i]['start']
+                }
+                if (response['data']['getBaseline']['projects'][i]['finish']) {
+                    anychart_data[pose]['actualEnd'] = response['data']['getBaseline']['projects'][i]['finish']
+                }
+                if (response['data']['getBaseline']['projects'][i]['parent']) {
+                    anychart_data[pose]['parent'] = response['data']['getBaseline']['projects'][i]['parent']['project']['id']
+                }
+            }
+        }
+    }
+
+
+
+    function update_anychart_data_baseline_compare(response) {
+        for (var i in response['data']['getBaseline']['projects']) {
+            var pose = get_anychart_data_pose(response['data']['getBaseline']['projects'][i]['project']['id'])
+            if (pose) {
+                if (response['data']['getBaseline']['projects'][i]['worktime']) {
+                    anychart_data[pose]['compare_worktime'] = response['data']['getBaseline']['projects'][i]['worktime']
+                } 
+                if (response['data']['getBaseline']['projects'][i]['start']) {
+                    anychart_data[pose]['baselineStart'] = response['data']['getBaseline']['projects'][i]['start']
+                }
+                if (response['data']['getBaseline']['projects'][i]['finish']) {
+                    anychart_data[pose]['baselineEnd'] = response['data']['getBaseline']['projects'][i]['finish']
+                }
+            }
+        }
+    }
+
+
+    function clean_anychart_fields(list_of_fields) {
+        for (var i = 0; i < anychart_data.length; i++) {
+            for (var j = 0; j < list_of_fields.length; j++) {
+                if (list_of_fields[j] in anychart_data[i]) {
+                    delete anychart_data[i][list_of_fields[j]]
+                }
+            }
+        }
+        refresh_anychart_data()
+    }
+
+
+    function get_baseline(baseline_id, compare) {
+        var query = `query {
+            getBaseline(id: "` + baseline_id + `") {
+                projects {
+                    project {id}
+                    worktime
+                    start
+                    finish
+                    wbs
+                    parent {project {id}}
+                    predecessors {type project {project {id}}}
+                }
+            }
+        }`
+
+        fetch(url_graphql, {
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query })
+        })
+        .then(res => res.json())
+        .then(function (rjs) {
+            if (compare) {update_anychart_data_baseline_compare(rjs)}
+            else {update_anychart_data_baseline(rjs)}
+            refresh_anychart_data()
+        })
+        .catch(console.error);
+    }
+
+
+
+
+
+    var chart = anychart.ganttProject(); 
+    
+    var buttons = chart.dataGrid().buttons();
+    // configure data grid buttons in the normal state
+    buttons.normal().content("+");
+    buttons.normal().fontColor("#ef6c00");
+
+    // configure data grid buttons in the hover state
+    buttons.hovered().content("+");
+    buttons.hovered().fontColor(anychart.color.lighten("#ef6c00"));
+
+    // configure data grid buttons in the selected state
+    buttons.selected().content("-");
+    buttons.selected().fontColor("#64b5f6");
+
+    chart.dataGrid().column(0).labels().format("");
+    chart.dataGrid().column(0).collapseExpandButtons(true);
+    chart.dataGrid().column(0).width(10);
+
+    chart.dataGrid().column(1).title().text("ID");
+    chart.dataGrid().column(1).depthPaddingMultiplier(0);
+    chart.dataGrid().column(1).collapseExpandButtons(false);
+    chart.dataGrid().column(1).width(60);
+    chart.dataGrid().column(1).labels().useHtml(true);
+    chart.dataGrid().column(1).labels().format("<a href='{%jira_link}'>{%id}</a>");
+
+
+    chart.dataGrid().column(2).title().text("Name")
+    chart.dataGrid().column(2).labels().format("{%name}");
+    chart.dataGrid().column(2).width(400);
+
+    chart.dataGrid().column(3).title().text("Actual worktime")
+    chart.dataGrid().column(3).labels().format("{%actual_worktime}");
+    chart.dataGrid().column(3).width(40);
+
+    chart.dataGrid().column(4).title().text("Compare worktime")
+    chart.dataGrid().column(4).labels().format("{%compare_worktime}");
+    chart.dataGrid().column(4).width(40);
+
+    chart.splitterPosition("567px");
+
+    // chart.getTimeline().tooltip().format(
+    //     "Start: {%actual_development_time_start}\nFinish: {%actual_development_time_finish}"
+    // )
+
+    chart.container("container");
+    chart.draw();
+    chart.fitAll();
+
+
+
+    chart.listen("rowDblClick", function (e) {
+        console.log("double click, checkbox", document.getElementById("auto_assign").checked, e)
+        if (document.getElementById("auto_assign").checked) {
+            console.log("double click")
+        }
+    });     
+
+
+
+
+
+function project_baseline_change() {
+    // var actual_baseline_selector = document.querySelector('#project_baseline').selectedOptions[0]
+    // get_project_baseline(actual_baseline_selector.project_id, actual_baseline_selector.baseline_id)
+
+    // document.querySelector('#project_baseline_compare').selectedIndex = 0
+
+    var compare_baseline_selector = document.querySelector('#project_baseline').selectedOptions[0]
+    clean_anychart_fields(['wbs', 'actual_worktime', 'actualStart', 'actualEnd', 'parent'])
+    if (compare_baseline_selector.text != "") {
+        get_baseline(compare_baseline_selector.baseline_id, false)
+    }
+}
+
+
+function project_baseline_compare_change() {
+    var compare_baseline_selector = document.querySelector('#project_baseline_compare').selectedOptions[0]
+    clean_anychart_fields(['compare_worktime', 'baselineStart', 'baselineEnd'])
+    if (compare_baseline_selector.text != "") {
+        get_baseline(compare_baseline_selector.baseline_id, true)
+    }
+}
+
+
+// collapse all tasks
+function collapseAll() {
+    chart.collapseAll();  
+}
+
+// expand all tasks
+function expandAll() {
+    chart.expandAll();  
+}
+
+
+function edit() { 
+    const jsFrame = new JSFrame();
+    //Create window
+    const frame = jsFrame.create({
+        title: 'Window',
+        left: 300, top: 300, width: 320, height: 220,
+        movable: true,//Enable to be moved by mouse
+        resizable: true,//Enable to be resized by mouse
+        // html: '<div id="my_element" style="padding:10px;font-size:12px;color:darkgray;">Contents of window</div>'
+        html: '<div id="my_element" style="padding:10px;font-size:12px;color:darkgray;">Implement task modification (open jira)</div>'
+    }).show()
+}
+
+
+</script>
+
+
+
+<div style="height: 700px;" id="container"></div>
+
+</body>
+</html> 

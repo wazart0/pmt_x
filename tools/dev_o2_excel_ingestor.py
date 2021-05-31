@@ -6,8 +6,8 @@ from datetime import datetime
 import pydgraph
 
 
-from tools.lib.rdf_project_creator import RDF
-from tools.lib.wbs import WBS
+from lib.rdf_project_creator import RDF
+from lib.wbs import WBS
 
 
 
@@ -222,7 +222,7 @@ if __name__ == "__main__":
     filenames = [
         # 'O2 Grouper Pipeline - Task List.xlsx',
         # 'P2 v3 Authorization_DS manager - list of tasks.xlsx',
-        # 'P2 v3 Replatforming Tasks List.xlsx',
+        'P2 v3 Replatforming Tasks List.xlsx',
         # 'P2 testing tasks.xlsx',
     ]
 
