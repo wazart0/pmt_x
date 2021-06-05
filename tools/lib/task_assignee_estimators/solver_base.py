@@ -90,18 +90,31 @@ class SolverBase():
         self.projects.drop(['start', 'finish', 'worktime'], axis=1, inplace=True)
         self.projects = self.projects.merge(self.lp[['project_id', 'start', 'finish', 'worktime']], how='left', on='project_id')
 
+        # while True:
+        #     tmp = self.projects.groupby('parent_id').count()
+        #     tmp = tmp[tmp.project_id == tmp.worktime]
+        #     update = self.projects[self.projects.parent_id.isin(tmp.index)].groupby('parent_id').agg({'worktime':'sum', 'start':'min', 'finish':'max'})
+
+        #     if self.projects[self.projects.worktime.isnull()].shape[0] == 0:
+        #         return
+
+        #     for index, row in update.iterrows():
+        #         self.projects.loc[self.projects.project_id == index, 'worktime'] = row.worktime
+        #         self.projects.loc[self.projects.project_id == index, 'start'] = row.start
+        #         self.projects.loc[self.projects.project_id == index, 'finish'] = row.finish
+
+        parents = self.projects[self.projects.parent_id.isin(self.lp.project_id)].project_id.copy(deep=True)
+
         while True:
-            tmp = self.projects.groupby('parent_id').count()
-            tmp = tmp[tmp.project_id == tmp.worktime]
-            update = self.projects[self.projects.parent_id.isin(tmp.index)].groupby('parent_id').agg({'worktime':'sum', 'start':'min', 'finish':'max'})
+            for parent_id in parents:
+                self.projects.loc[self.projects.project_id == parent_id, 'worktime'] = self.projects[self.projects.project_id == parent_id].worktime.sum()
+                self.projects.loc[self.projects.project_id == parent_id, 'start'] = self.projects[self.projects.project_id == parent_id].start.min()
+                self.projects.loc[self.projects.project_id == parent_id, 'finish'] = self.projects[self.projects.project_id == parent_id].finish.max()
 
-            if self.projects[self.projects.worktime.isnull()].shape[0] == 0:
+            parents = self.projects[self.projects.parent_id.isin(parents)].project_id.copy(deep=True)
+
+            if len(parents) == 0:
                 return
-
-            for index, row in update.iterrows():
-                self.projects.loc[self.projects.project_id == index, 'worktime'] = row.worktime
-                self.projects.loc[self.projects.project_id == index, 'start'] = row.start
-                self.projects.loc[self.projects.project_id == index, 'finish'] = row.finish
 
 
     # def find_incorrect_dependencies_FS(self):
@@ -231,6 +244,10 @@ class SolverBaseResources(SolverBase):
                 return
 
             time_left -= worktime
+
+        self.lp.at[lp_index, 'start'] = None
+        self.lp.at[lp_index, 'finish'] = None
+        self.deallocate_project_from_resources(project_id)
         raise Exception("No more available time in calendar.")
 
 
@@ -272,12 +289,48 @@ class SolverBaseResources(SolverBase):
                 return
 
             time_left -= worktime
+
+        self.lp.at[lp_index, 'start'] = None
+        self.lp.at[lp_index, 'finish'] = None
+        self.deallocate_project_from_resources(project_id)
         raise Exception("No more available time in calendar.")
+
+
+    def get_first_free_resource_id(self, from_date: pd.Timestamp):
+        # return self.av[self.av.project_id.isnull() & (self.av.start == self.av[self.av.project_id.isnull()].start.min())].resource_id.iat[0]
+        return self.av[self.av.project_id.isnull() & (from_date <= self.av.start)].sort_values(['start']).resource_id.iat[0]
+
+
+    @staticmethod
+    def merge_calendars(main, availibility):
+        out = main.copy(deep=True)
+
+        for _, row_av in availibility.iterrows():
+            related = main[(main.resource_id == row_av['resource_id']) & (main.start <= row_av['finish']) & (main.finish >= row_av['start'])]
+            if related.shape[0]:
+                if related.shape[0] == 1 and \
+                    row_av['start'] == related.start.min() and \
+                    row_av['finish'] == related.finish.max():
+                        continue
+                # for _, row_rel in related.sort_values('start').iterrows(): # TODO: serve more advanced scenarios
+                #     pass
+                if related.finish.max() < row_av['finish']:
+                    row_av['start'] = related.finish.max()
+                    out.loc[out.shape[0]] = row_av.copy(deep=True)
+                else:
+                    print("problem in calendar merge")
+            else:
+                out.loc[out.shape[0]] = row_av.copy(deep=True)
+
+        return out
 
 
     @staticmethod
     def create_availability_calendar(start_time = pd.Timestamp.now(tz='UTC'), number_of_users = 1, days_ahead = 300):
-        start_time = start_time - pd.Timedelta(start_time.time().strftime('%H:%M:%S')) + pd.Timedelta(8, 'h')
+        # start_time = start_time - pd.Timedelta(start_time.time().strftime('%H:%M:%S')) + pd.Timedelta(8, 'h')
+        start_time = start_time.normalize() + pd.Timedelta(8, 'h')
+        # start_time.microsecond = 0
+        # start_time.nanosecond = 0
 
         start = []
         for i in range(days_ahead):

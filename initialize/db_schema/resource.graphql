@@ -1,0 +1,25 @@
+enum ResourceType {
+    User
+    Other
+}
+
+type Resource @generate (
+    query: {
+        get: true,
+        query: true,
+        aggregate: true
+    },
+    mutation: {
+        add: true,
+        delete: true
+    },
+    subscription: true
+) {
+	id: ID!
+	name: String! @search
+    description: String
+
+    type: ResourceType!
+
+    customFields: String
+}

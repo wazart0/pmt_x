@@ -7,22 +7,22 @@ import pandas as pd
 
 def request_and_normalize_baselines_from_pmtx(url, query_project_filter): # request default and some planned baseline
     query_projects = '''
-    query ($filter_projects: ProjectFilter!) {
-        queryProject (filter: $filter_projects) {
-        name
-            baselines (order: {desc: name}) {
-                name
-                projects (order: {asc: wbs}) {
-                    project {id}
-                    worktime
-                    start
-                    finish
-                    parent {project {id}}
-                    predecessors {type project {project {id}}}
+        query ($filter_projects: ProjectFilter!) {
+            queryProject (filter: $filter_projects) {
+            name
+                baselines (order: {desc: name}) {
+                    name
+                    projects (order: {asc: wbs}) {
+                        project {id}
+                        worktime
+                        start
+                        finish
+                        parent {project {id}}
+                        predecessors {type project {project {id}}}
+                    }
                 }
             }
         }
-    }
     '''
 
     r = requests.post(url=url, json={"query": query_projects, "variables": {"filter_projects": query_project_filter}})

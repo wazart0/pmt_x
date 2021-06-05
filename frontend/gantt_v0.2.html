@@ -55,18 +55,23 @@ Click me to display Date and Time.</button>
 <label for="project_baseline">Select baseline:</label>
 <select id="project_baseline" onchange='project_baseline_change();'><option value=""></option></select>
 
-<label for="project_baseline_compare">Select baseline compare:</label>
-<select id="project_baseline_compare" onchange='project_baseline_compare_change();'><option value=""></option></select>
-
 <button id="collapseAllButton" onclick="collapseAll()">Collapse All</button>
 <button id="expandAllButton" onclick="expandAll()">Expand All</button>
 
+<label for="project_baseline_compare">Select baseline compare:</label>
+<select id="project_baseline_compare" onchange='project_baseline_compare_change();'><option value=""></option></select>
 
 <button id="editbutton" onclick="edit()">edit</button>
 
 
+<br><b>Baseline builder: </b>
+
+<button id="merge_baselines" onclick="baselineMerge()">Merge cmp with act</button>
+
 <label for="auto_assign">Auto assign (double click)</label>
 <input type="checkbox" id="auto_assign">
+
+
 
 
 
@@ -456,7 +461,7 @@ Click me to display Date and Time.</button>
     chart.listen("rowDblClick", function (e) {
         console.log("double click, checkbox", document.getElementById("auto_assign").checked, e)
         if (document.getElementById("auto_assign").checked) {
-            console.log("double click")
+            console.log("auto assign")
         }
     });     
 
@@ -470,10 +475,10 @@ function project_baseline_change() {
 
     // document.querySelector('#project_baseline_compare').selectedIndex = 0
 
-    var compare_baseline_selector = document.querySelector('#project_baseline').selectedOptions[0]
+    var baseline_selector = document.querySelector('#project_baseline').selectedOptions[0]
     clean_anychart_fields(['wbs', 'actual_worktime', 'actualStart', 'actualEnd', 'parent'])
-    if (compare_baseline_selector.text != "") {
-        get_baseline(compare_baseline_selector.baseline_id, false)
+    if (baseline_selector.text != "") {
+        get_baseline(baseline_selector.baseline_id, false)
     }
 }
 
@@ -483,6 +488,15 @@ function project_baseline_compare_change() {
     clean_anychart_fields(['compare_worktime', 'baselineStart', 'baselineEnd'])
     if (compare_baseline_selector.text != "") {
         get_baseline(compare_baseline_selector.baseline_id, true)
+    }
+}
+
+
+function baselineMerge() {
+    var baseline_selector = document.querySelector('#project_baseline').selectedOptions[0]
+    var compare_baseline_selector = document.querySelector('#project_baseline_compare').selectedOptions[0]
+    if (baseline_selector.text != "" & compare_baseline_selector.text != "") {
+        console.log("merge")
     }
 }
 

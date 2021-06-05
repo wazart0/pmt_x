@@ -37,14 +37,14 @@ def adjust_to_query_project_baseline(projects: pd.DataFrame, baseline_id: str, r
     }]
 
     projects_to_parse = projects[projects.project_id != root_id].copy(deep=True)
-    projects_to_parse.loc[projects_to_parse.parent_id == root_id, 'parent_id'] = None
+    projects_to_parse.loc[projects_to_parse.parent_id.isnull(), 'parent_id'] = root_id
 
-    projects_to_parse['worktime'] = projects_to_parse.worktime.apply(lambda val: str(float(val.total_seconds())/3600.) + 'h')
+    projects_to_parse['worktime'] = projects_to_parse.worktime.apply(lambda val: None if val is pd.Timedelta(None) else str(float(val.total_seconds())/3600.) + 'h')
     projects_to_parse['start'] = projects_to_parse.start.astype(str).apply(lambda val: None if val == 'NaT' else str_to_rfc(val))
     projects_to_parse['finish'] = projects_to_parse.finish.astype(str).apply(lambda val: None if val == 'NaT' else str_to_rfc(val))
 
-    children = projects_to_parse[projects_to_parse.parent_id.isnull()]
-    children.loc['parent_id'] = root_id
+    children = projects_to_parse[projects_to_parse.parent_id == root_id].copy(deep=True)
+
     while children.shape[0]:
         for child in json.loads(children.to_json(orient="records")):
             child['baseline'] = {"id": baseline_id}
@@ -55,8 +55,7 @@ def adjust_to_query_project_baseline(projects: pd.DataFrame, baseline_id: str, r
             del child['parent_id']
 
             add_child_to_parent(project_baseline, parent_id, child)
-        # return project_baseline
-        children = projects_to_parse[projects_to_parse.parent_id.isin(children.project_id)]
+        children = projects_to_parse[projects_to_parse.parent_id.isin(children.project_id)].copy(deep=True)
 
     return project_baseline
 
@@ -113,11 +112,7 @@ def add_project_baseline(url: str, projects: pd.DataFrame, baseline_id: str, roo
 
     print(r.json())
 
-    if r.status_code != 200 \
-        or 'errors' in r.json() \
-        or r.json()['data']['addProjectBaseline']['projectBaseline'][0]['project']['id'] != root_id \
-        or r.json()['data']['addProjectBaseline']['projectBaseline'][0]['baseline']['id'] != baseline_id:
-
+    if r.status_code != 200 or 'errors' in r.json():
         print('ERROR: record not ingested: ' + str(url) + '\n' + str(r.status_code) + '\n' + str(r.json()) + '\n')
         raise Exception('problem with getting data')
 
@@ -245,6 +240,54 @@ def modify_project_baseline_predecessors(url: str, dependencies_df: pd.DataFrame
         if r.status_code != 200 or 'errors' in r.json():
             print('ERROR: record not ingested: ' + str(url) + '\n' + str(r.status_code) + '\n' + str(r.json()) + '\n' + str(query_projectbaseline))
             raise Exception('problem with getting data')
+
+
+
+def cleanup_baseline(url: str, baseline_id: str):
+
+    query = '''
+        query ($baseline_id :ID!) {
+            getBaseline(id: $baseline_id) {
+                projects {id}
+                resources {id}
+                root {id}
+            }
+        }
+    '''
+
+    r = requests.post(url=url, json={"query": query, "variables": {"baseline_id": baseline_id}})
+
+    if r.status_code != 200 or 'errors' in r.json():
+        print('ERROR: record not ingested: ' + str(url) + '\n' + str(r.status_code) + '\n' + str(r.json()) + '\n' + str(query))
+        raise Exception('problem with getting data')
+
+    projects = [p['id'] for p in r.json()['data']['getBaseline']['projects']]
+    resources = [r['id'] for r in r.json()['data']['getBaseline']['resources']]
+    root_id = r.json()['data']['getBaseline']['root']['id']
+
+    mutation = '''
+mutation ($project_ids:[ID!] $resource_ids:[ID!]) {
+  deleteProjectBaseline (filter: {id: $project_ids}) {
+    numUids
+    msg
+  }
+  deleteResourceBaseline (filter: {id: $resource_ids}) {
+    numUids
+    msg
+  }
+}
+    '''
+
+    r = requests.post(url=url, json={"query": mutation, "variables": {"project_ids": projects, "resource_ids": resources}})
+
+    if r.status_code != 200 or 'errors' in r.json():
+        print('ERROR: record not ingested: ' + str(url) + '\n' + str(r.status_code) + '\n' + str(r.json()) + '\n' + str(mutation))
+        raise Exception('problem with getting data')
+
+    print(r.json()['data'])
+
+    return root_id
+
 
 
 

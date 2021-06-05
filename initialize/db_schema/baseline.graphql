@@ -63,6 +63,7 @@ type ResourceBaseline @generate (
     id: ID!
     project: Project!
     baseline: Baseline!
+    # resource: Resource!
     resource: Int!
 
 	start: DateTime

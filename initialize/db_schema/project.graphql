@@ -44,5 +44,4 @@ type Project @generate (
     externalTool: [ExternalTool]
 
     customFields: String
-
 }
