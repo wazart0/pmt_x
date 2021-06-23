@@ -86,9 +86,10 @@ class SolverBase():
         return ld
 
 
-    def update_projects(self):
-        self.projects.drop(['start', 'finish', 'worktime'], axis=1, inplace=True)
-        self.projects = self.projects.merge(self.lp[['project_id', 'start', 'finish', 'worktime']], how='left', on='project_id')
+    def update_projects(self, from_lp = True):
+        if from_lp:
+            self.projects.drop(['start', 'finish', 'worktime'], axis=1, inplace=True)
+            self.projects = self.projects.merge(self.lp[['project_id', 'start', 'finish', 'worktime']], how='left', on='project_id')
 
         # while True:
         #     tmp = self.projects.groupby('parent_id').count()
@@ -103,18 +104,18 @@ class SolverBase():
         #         self.projects.loc[self.projects.project_id == index, 'start'] = row.start
         #         self.projects.loc[self.projects.project_id == index, 'finish'] = row.finish
 
-        parents = self.projects[self.projects.parent_id.isin(self.lp.project_id)].project_id.copy(deep=True)
+        parents = self.projects[~self.projects.project_id.isin(self.projects.parent_id)].project_id.copy(deep=True) # lowest level projects (init)
 
         while True:
-            for parent_id in parents:
-                self.projects.loc[self.projects.project_id == parent_id, 'worktime'] = self.projects[self.projects.project_id == parent_id].worktime.sum()
-                self.projects.loc[self.projects.project_id == parent_id, 'start'] = self.projects[self.projects.project_id == parent_id].start.min()
-                self.projects.loc[self.projects.project_id == parent_id, 'finish'] = self.projects[self.projects.project_id == parent_id].finish.max()
-
             parents = self.projects[self.projects.parent_id.isin(parents)].project_id.copy(deep=True)
 
             if len(parents) == 0:
                 return
+
+            for parent_id in parents:
+                self.projects.loc[self.projects.project_id == parent_id, 'worktime'] = self.projects[self.projects.project_id == parent_id].worktime.sum()
+                self.projects.loc[self.projects.project_id == parent_id, 'start'] = self.projects[self.projects.project_id == parent_id].start.min()
+                self.projects.loc[self.projects.project_id == parent_id, 'finish'] = self.projects[self.projects.project_id == parent_id].finish.max()
 
 
     # def find_incorrect_dependencies_FS(self):
@@ -303,6 +304,9 @@ class SolverBaseResources(SolverBase):
 
     @staticmethod
     def merge_calendars(main, availibility):
+        if main.shape[0] == 0:
+            return availibility
+
         out = main.copy(deep=True)
 
         for _, row_av in availibility.iterrows():

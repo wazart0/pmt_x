@@ -4,6 +4,24 @@ import pandas as pd
 
 
 
+def get_root_id(url, baseline_id): # request default and some planned baseline
+    query_baseline = '''
+        query ($baseline_id :ID!) {
+            getBaseline(id: $baseline_id) {
+                root {id}
+            }
+        }
+    '''
+
+    r = requests.post(url=url, json={"query": query_baseline, "variables": {"baseline_id": baseline_id}})
+
+    if r.status_code != 200 or 'errors' in r.json():
+        print('ERROR: record not ingested: ' + str(url) + '\n' + str(r.status_code) + '\n' + str(r.json()) + '\n' + str(query_baseline))
+        raise Exception('problem with getting data')
+
+    return r.json()['data']['getBaseline']['root']['id']
+
+
 
 def request_and_normalize_baseline_from_pmtx(url, baseline_id): # request default and some planned baseline
     query_baseline = '''

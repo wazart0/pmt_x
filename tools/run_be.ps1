@@ -1,0 +1,1 @@
+uvicorn.exe be_main:app --reload

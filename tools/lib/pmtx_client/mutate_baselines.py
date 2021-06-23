@@ -120,6 +120,9 @@ def add_project_baseline(url: str, projects: pd.DataFrame, baseline_id: str, roo
 
 
 def adjust_to_query_resource_baseline(resources: pd.DataFrame, baseline_id: str) -> str:
+    if resources.shape[0] == 0:
+        return None
+
     resource_to_parse = resources[resources.project_id.notnull()].copy(deep=True)
 
     resource_to_parse['worktime'] = resource_to_parse.finish - resource_to_parse.start
@@ -142,6 +145,9 @@ def adjust_to_query_resource_baseline(resources: pd.DataFrame, baseline_id: str)
 
 def add_resource_baseline(url: str, resources: pd.DataFrame, baseline_id: str) -> None:
     resource_baseline = adjust_to_query_resource_baseline(resources, baseline_id)
+
+    if resource_baseline is None:
+        return
 
     mutation_project_baseline = '''
     mutation ($resources: [AddResourceBaselineInput!]!)  {
@@ -266,16 +272,16 @@ def cleanup_baseline(url: str, baseline_id: str):
     root_id = r.json()['data']['getBaseline']['root']['id']
 
     mutation = '''
-mutation ($project_ids:[ID!] $resource_ids:[ID!]) {
-  deleteProjectBaseline (filter: {id: $project_ids}) {
-    numUids
-    msg
-  }
-  deleteResourceBaseline (filter: {id: $resource_ids}) {
-    numUids
-    msg
-  }
-}
+        mutation ($project_ids:[ID!] $resource_ids:[ID!]) {
+            deleteProjectBaseline (filter: {id: $project_ids}) {
+                numUids
+                msg
+            }
+            deleteResourceBaseline (filter: {id: $resource_ids}) {
+                numUids
+                msg
+            }
+        }
     '''
 
     r = requests.post(url=url, json={"query": mutation, "variables": {"project_ids": projects, "resource_ids": resources}})

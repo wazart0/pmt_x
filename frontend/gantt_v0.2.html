@@ -66,7 +66,7 @@ Click me to display Date and Time.</button>
 
 <br><b>Baseline builder: </b>
 
-<button id="merge_baselines" onclick="baselineMerge()">Merge cmp with act</button>
+<button id="merge_baselines" onclick="baselineMerge()">Combine selected baselines</button>
 
 <label for="auto_assign">Auto assign (double click)</label>
 <input type="checkbox" id="auto_assign">
@@ -82,6 +82,7 @@ Click me to display Date and Time.</button>
     var anychart_data = []
 
     const url = 'http://localhost:8080/'
+    const url_be = 'http://127.0.0.1:8000/'
 
     const url_graphql = url + 'graphql'
     const url_query = url + 'query'
@@ -459,9 +460,34 @@ Click me to display Date and Time.</button>
 
 
     chart.listen("rowDblClick", function (e) {
-        console.log("double click, checkbox", document.getElementById("auto_assign").checked, e)
-        if (document.getElementById("auto_assign").checked) {
-            console.log("auto assign")
+        var baseline_selector = document.querySelector('#project_baseline').selectedOptions[0]
+        if (document.getElementById("auto_assign").checked & baseline_selector.text != "") {
+            console.log("auto assign", e['item']['oa']['id'])
+
+            var params = {
+                "url": url_graphql,
+                "baseline_id": baseline_selector.baseline_id,
+                "project_id": e['item']['oa']['id']
+            }
+
+            var url = url_graphql
+            var baseline_id = baseline_selector.baseline_id
+            var project_id = e['item']['oa']['id']
+
+            console.log(params)
+            fetch(url_be + 'allocate_single_task/', {
+                method: 'post',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url, baseline_id, project_id })
+            })
+            .then(res => res.json())
+            .then(function (rjs) {
+                console.log(rjs)
+                project_baseline_change()
+            })
+            .catch(console.error);
         }
     });     
 
