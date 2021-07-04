@@ -35,7 +35,7 @@ type ProjectBaseline @generate (
 ) {
     id: ID!
     project: Project!
-    baseline: Baseline! 
+    baseline: Baseline
 
 	start: DateTime
     finish: DateTime

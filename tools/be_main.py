@@ -22,10 +22,10 @@ app.add_middleware(
 
 
 
-
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
+
 
 
 class TaskAllocatorInput(BaseModel):
@@ -50,7 +50,20 @@ def allocate_single_task(item: TaskAllocatorInput):
     return {"project_id": input_json['project_id'], "start": solver.projects.loc[index, 'start'], "finish": solver.projects.loc[index, 'finish']}
 
 
+
 @app.post("/baseline_merge/{item_id}")
 def update_item(item_id: int, item: TaskAllocatorInput):
     return {"item_name": item.name, "item_id": item_id}
 
+
+
+class JiraSynchronizer(BaseModel):
+    url: str
+    project_id: str
+    jiraUrl: str
+    jql: str
+
+@app.post("/import_missing_issues_from_jira/")
+def import_missing_issues_from_jira(item: JiraSynchronizer):
+    
+    return {"new_projects": ""}

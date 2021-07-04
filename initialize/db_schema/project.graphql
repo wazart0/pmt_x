@@ -1,8 +1,14 @@
 enum ExternalToolType {
     Jira
-    GitLab
+    Gitlab
     Other
 }
+
+# enum ProjectState {
+#     ToDo
+#     InProgress
+#     Done
+# }
 
 type ExternalTool @generate (
     query: {
@@ -17,10 +23,12 @@ type ExternalTool @generate (
     subscription: false
 ) {
 	name: String! @search
-    url: String!
+    url: String! @search(by: [exact])
     urlSubpath: String
-    externalID: String!
+    externalID: String! @id
     type: ExternalToolType!
+    project: Project
+    customFields: String
 }
 
 type Project @generate (
@@ -38,10 +46,12 @@ type Project @generate (
 	id: ID!
 	name: String! @search
 	description: String
+
+    baseline: ProjectBaseline! @hasInverse(field: project)
 	
     baselines: [Baseline] @hasInverse(field: root)
 
-    externalTool: [ExternalTool]
+    externalTool: [ExternalTool] @ hasInverse(field: project)
 
     customFields: String
 }

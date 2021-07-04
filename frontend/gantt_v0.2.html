@@ -220,9 +220,11 @@ Click me to display Date and Time.</button>
         for (var p in projects) {
             var project = {
                     'id': projects[p]['id'],
-                    'name': projects[p]['name'], 
-                    'description': projects[p]['description']
+                    'name': projects[p]['name']
                 }
+            if ('description' in projects[p]) {
+                project['description'] = projects[p]['description']
+            }
 
             if (projects[p]['customFields']) {
                 var custom = JSON.parse(projects[p]['customFields'])
@@ -232,9 +234,19 @@ Click me to display Date and Time.</button>
                 }
             }
 
-            if ('jira_id' in project) {
-                project['jira_link'] = "https://tangramcare.atlassian.net/browse/" + project['jira_id']
-            }
+            if ('externalTool' in projects[p]) {
+                for (var i in projects[p]['externalTool']) {
+                    if (projects[p]['externalTool'][i]['type'] == 'Jira'){
+                        project['jira_id'] = projects[p]['externalTool'][i]['id']
+                        project['jira_link'] = projects[p]['externalTool'][i]['url'] + "browse/" + projects[p]['externalTool'][i]['id']
+                        var custom = JSON.parse(projects[p]['externalTool'][i]['customFields'])
+                        var pr;
+                        for (pr in custom) {
+                            project[pr] = custom[pr]
+                        }
+                    }
+                }
+            }    
 
             if (project['wbs'] == null) { // TODO: remove and get from projectbaseline
                 project['wbs'] = '' 
@@ -242,6 +254,7 @@ Click me to display Date and Time.</button>
 
             formatted.push(project)
         }
+        // console.log(formatted)
 
         return formatted
     }
@@ -254,7 +267,18 @@ Click me to display Date and Time.</button>
             document.querySelector('#filter_baseline_2').selectedOptions[0].value == "" &
             document.querySelector('#filter_baseline_3').selectedOptions[0].value == "" &
             document.querySelector('#filter_baseline_4').selectedOptions[0].value == "") {
-                var query = `query v($baselines: string, $name_regex: string) { var (func: type(Baseline)) { Baseline.projects { ProjectBaseline.project { B as uid } } } projects (func: uid(B)) @filter(regexp(Project.name, $name_regex)) { id: uid name: Project.name description: Project.description customFields: Project.customFields } }`
+                var query = `
+query v($baselines: string, $name_regex: string = "//i") {
+  projects(func: type(Project)) @filter(regexp(Project.name, $name_regex))
+    { id: uid name: Project.name description: Project.description customFields: Project.customFields 
+      externalTool: Project.externalTool{
+      id: ExternalTool.externalID
+      url: ExternalTool.url
+      customFields: ExternalTool.customFields
+      type: ExternalTool.type
+    } }
+}
+                `
         }
         else {
             var query = `query v($baselines: string, $name_regex: string) { var (func: type(Baseline)) @filter(uid($baselines)) { Baseline.projects { ProjectBaseline.project { B as uid } } } projects (func: uid(B)) @filter(regexp(Project.name, $name_regex)) { id: uid name: Project.name description: Project.description customFields: Project.customFields } }`
@@ -268,10 +292,10 @@ Click me to display Date and Time.</button>
             document.querySelector('#filter_baseline_3').selectedOptions[0].text + "," +
             document.querySelector('#filter_baseline_4').selectedOptions[0].text + "," +
             "]",
-            "$name_regex": "/" + document.getElementById('project_name_regex').value + "/"
+            "$name_regex": "/" + document.getElementById('project_name_regex').value + "/i"
         }
 
-        console.log(variables)
+        // console.log(variables)
 
         fetch(url_query, {
             method: 'post',
@@ -282,6 +306,7 @@ Click me to display Date and Time.</button>
         })
         .then(res => res.json())
         .then(function (rjs) {
+            // console.log(rjs)
             anychart_data = parse_filtered_projects(rjs)
             
             refresh_anychart_data()
