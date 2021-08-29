@@ -61,10 +61,11 @@ Click me to display Date and Time.</button>
 <label for="project_baseline_compare">Select baseline compare:</label>
 <select id="project_baseline_compare" onchange='project_baseline_compare_change();'><option value=""></option></select>
 
-<button id="editbutton" onclick="edit()">edit</button>
 
 
 <br><b>Baseline builder: </b>
+
+<button id="create_baseline_button" onclick="create_baseline_window()">Create baseline</button>
 
 <button id="merge_baselines" onclick="baselineMerge()">Combine selected baselines</button>
 
@@ -315,6 +316,8 @@ query v($baselines: string, $name_regex: string = "//i") {
             // update_anychart_data_baseline_compare(rjs)
             document.querySelector('#project_baseline').selectedIndex = 0
             document.querySelector('#project_baseline_compare').selectedIndex = 0
+
+            get_baseline("", false)
         })
         .catch(console.error);
     }
@@ -343,24 +346,28 @@ query v($baselines: string, $name_regex: string = "//i") {
 
 
 
-    function update_anychart_data_baseline(response) {
-        for (var i in response['data']['getBaseline']['projects']) {
-            var pose = get_anychart_data_pose(response['data']['getBaseline']['projects'][i]['project']['id'])
+    function update_anychart_data_baseline(projects) {
+        for (var i in projects) {
+            // var element = chart.data().search('id', projects[i]['project']['id'])
+            // if (projects[i]['start']) { element.set('actualStart', projects[i]['start']) }
+            // if (projects[i]['finish']) { element.set('actualEnd', projects[i]['finish']) }
+
+            var pose = get_anychart_data_pose(projects[i]['project']['id'])
             if (pose) {
-                if (response['data']['getBaseline']['projects'][i]['wbs']) {
-                    anychart_data[pose]['wbs'] = response['data']['getBaseline']['projects'][i]['wbs']
+                if (projects[i]['wbs']) {
+                    anychart_data[pose]['wbs'] = projects[i]['wbs']
                 } 
-                if (response['data']['getBaseline']['projects'][i]['worktime']) {
-                    anychart_data[pose]['actual_worktime'] = response['data']['getBaseline']['projects'][i]['worktime']
+                if (projects[i]['worktime']) {
+                    anychart_data[pose]['actual_worktime'] = projects[i]['worktime']
                 } 
-                if (response['data']['getBaseline']['projects'][i]['start']) {
-                    anychart_data[pose]['actualStart'] = response['data']['getBaseline']['projects'][i]['start']
+                if (projects[i]['start']) {
+                    anychart_data[pose]['actualStart'] = projects[i]['start']
                 }
-                if (response['data']['getBaseline']['projects'][i]['finish']) {
-                    anychart_data[pose]['actualEnd'] = response['data']['getBaseline']['projects'][i]['finish']
+                if (projects[i]['finish']) {
+                    anychart_data[pose]['actualEnd'] = projects[i]['finish']
                 }
-                if (response['data']['getBaseline']['projects'][i]['parent']) {
-                    anychart_data[pose]['parent'] = response['data']['getBaseline']['projects'][i]['parent']['project']['id']
+                if (projects[i]['parent']) {
+                    anychart_data[pose]['parent'] = projects[i]['parent']['project']['id']
                 }
             }
         }
@@ -368,18 +375,18 @@ query v($baselines: string, $name_regex: string = "//i") {
 
 
 
-    function update_anychart_data_baseline_compare(response) {
-        for (var i in response['data']['getBaseline']['projects']) {
-            var pose = get_anychart_data_pose(response['data']['getBaseline']['projects'][i]['project']['id'])
+    function update_anychart_data_baseline_compare(projects) {
+        for (var i in projects) {
+            var pose = get_anychart_data_pose(projects[i]['project']['id'])
             if (pose) {
-                if (response['data']['getBaseline']['projects'][i]['worktime']) {
-                    anychart_data[pose]['compare_worktime'] = response['data']['getBaseline']['projects'][i]['worktime']
+                if (projects[i]['worktime']) {
+                    anychart_data[pose]['compare_worktime'] = projects[i]['worktime']
                 } 
-                if (response['data']['getBaseline']['projects'][i]['start']) {
-                    anychart_data[pose]['baselineStart'] = response['data']['getBaseline']['projects'][i]['start']
+                if (projects[i]['start']) {
+                    anychart_data[pose]['baselineStart'] = projects[i]['start']
                 }
-                if (response['data']['getBaseline']['projects'][i]['finish']) {
-                    anychart_data[pose]['baselineEnd'] = response['data']['getBaseline']['projects'][i]['finish']
+                if (projects[i]['finish']) {
+                    anychart_data[pose]['baselineEnd'] = projects[i]['finish']
                 }
             }
         }
@@ -399,32 +406,47 @@ query v($baselines: string, $name_regex: string = "//i") {
 
 
     function get_baseline(baseline_id, compare) {
-        var query = `query {
-            getBaseline(id: "` + baseline_id + `") {
-                projects {
-                    project {id}
-                    worktime
-                    start
-                    finish
-                    wbs
-                    parent {project {id}}
-                    predecessors {type project {project {id}}}
-                }
-            }
-        }`
+        // var query = `query {
+        //     getBaseline(id: "` + baseline_id + `") {
+        //         projects {
+        //             project {id}
+        //             worktime
+        //             start
+        //             finish
+        //             wbs
+        //             parent {project {id}}
+        //             predecessors {type project {project {id}}}
+        //         }
+        //     }
+        // }`
 
-        fetch(url_graphql, {
+        var query = `query pb ($projects_ids: string!) {    var(func: uid($projects_ids)) { Project.baseline { project_id as uid } }    projects (func: uid(project_id)) {      wbs: ProjectBaseline.wbs      worktime: ProjectBaseline.worktime      start: ProjectBaseline.start      finish: ProjectBaseline.finish      project: ProjectBaseline.project { id: uid }      parent: ProjectBaseline.parent {project: ProjectBaseline.project {id: uid}}      predecessors: ProjectBaseline.predecessors {type: Predecessor.type project: Predecessor.project {project: ProjectBaseline.project {id: uid}}}    }  }`
+
+        var tmp = "["
+        var traverser = chart.data().getTraverser()
+        while (traverser.advance()){
+            tmp = tmp + traverser.get('id') + ","
+        }
+        tmp = tmp + "]"
+
+        var variables = {
+            "$projects_ids": tmp
+        }
+
+
+        fetch(url_query, {
             method: 'post',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ query })
+            body: JSON.stringify({ query, variables })
         })
         .then(res => res.json())
         .then(function (rjs) {
-            if (compare) {update_anychart_data_baseline_compare(rjs)}
-            else {update_anychart_data_baseline(rjs)}
+            if (compare) {update_anychart_data_baseline_compare(rjs['data']['projects'])}
+            else {update_anychart_data_baseline(rjs['data']['projects'])}
             refresh_anychart_data()
+            // chart.fitAll();
         })
         .catch(console.error);
     }
@@ -531,6 +553,9 @@ function project_baseline_change() {
     if (baseline_selector.text != "") {
         get_baseline(baseline_selector.baseline_id, false)
     }
+    else {
+
+    }
 }
 
 
@@ -563,19 +588,26 @@ function expandAll() {
 }
 
 
-function edit() { 
+function create_baseline_window() { 
     const jsFrame = new JSFrame();
     //Create window
     const frame = jsFrame.create({
-        title: 'Window',
+        title: 'Create baseline',
         left: 300, top: 300, width: 320, height: 220,
         movable: true,//Enable to be moved by mouse
         resizable: true,//Enable to be resized by mouse
         // html: '<div id="my_element" style="padding:10px;font-size:12px;color:darkgray;">Contents of window</div>'
-        html: '<div id="my_element" style="padding:10px;font-size:12px;color:darkgray;">Implement task modification (open jira)</div>'
+        html: `
+        <label for="new_baseline_name"><div id="my_element" style="font-size:15px;color:black;">Baseline name</div></label>
+        <input id="new_baseline_name" type="text" maxlength="512" class="searchField" onchange='create_baseline();' placeholder="Original plan"/>
+        `
     }).show()
 }
 
+
+function create_baseline() {
+    console.log('create_baseline')
+}
 
 </script>
 

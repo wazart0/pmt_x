@@ -12,7 +12,7 @@ def request_gql(url: str, query: str, variables: dict) -> dict:
     if r.status_code != 200 or "errors" in r.json():
         # print("ERROR: record not ingested: " + str(url) + "\n" + str(r.status_code) + "\n" + str(r.json()) + "\n" + str(query))
         print("ERROR:")
-        print("Problem occured while sinding to PMT X:")
+        print("Problem occured while sending to PMT X:")
         print("URL:", url)
         print("QUERY:", query)
         print("VARIABLES:")
@@ -22,6 +22,20 @@ def request_gql(url: str, query: str, variables: dict) -> dict:
         raise Exception("Problem occured while sinding to PMT X")
     return r.json()
 
+
+def request_mutate(url: str, mutation: dict):
+    r = requests.post(url=url + 'mutate?commitNow=true', json=mutation)
+    if r.status_code != 200 or "errors" in r.json():
+        # print("ERROR: record not ingested: " + str(url) + "\n" + str(r.status_code) + "\n" + str(r.json()) + "\n" + str(query))
+        print("ERROR:")
+        print("Problem occured while sending to PMT X:")
+        print("URL:", url)
+        print("MUTATION:")
+        print(json.dumps(mutation, indent=4))
+        print("RESPONSE:")
+        print(json.dumps(r.json(), indent=4))
+        raise Exception("Problem occured while sinding to PMT X")
+    return r.json()
 
 
 
@@ -47,9 +61,6 @@ def sync_baseline_from_jira(baseline_id: str, url: str, jira_info: dict) -> None
     if r.status_code != 200 or "errors" in r.json():
         print("ERROR: record not ingested: " + str(url) + "\n" + str(r.status_code) + "\n" + str(r.json()) + "\n" + str(query))
         raise Exception("problem with getting data")
-
-
-
 
 
     mutation = """
@@ -174,22 +185,114 @@ mutation ($projects: [AddProjectInput!]!) {
     if projects_to_create:
         response = request_gql(url, create_projects, {"projects": projects_to_create})
 
-    return [issue['key'] for issue in issues]
+    return issues
 
 
 
-def sync_default_baseline(url: str, jira_info: dict, issues_keys: list):
+def sync_default_baseline(url: str, jira_info: dict, issues: dict):
 
-    for key in issues_keys:
-        issueCL = jira.get_issue_changelog(jira_info, key)
-        baseline = {
-            "start": jira.get_issue_first_transition_date(issueCL, ["In progress"]),
-            "finish": jira.get_issue_last_transition_date(issueCL, ["Closed"]),
-            # "worktime": 
-        }
+    query = """
+query ($jira_ids: [String!]!) {
+  queryExternalTool (filter: {externalID: {in: $jira_ids}}) {
+    externalID
+    project {baseline {id}}
+  }
+}
+    """
+    response = request_gql(url, query, {"jira_ids": [issue['key'] for issue in issues]})
+    map_jira_pmt = {}
+    for i in response['data']['queryExternalTool']:
+        map_jira_pmt[i['externalID']] = i['project']['baseline']['id']
 
+    mutation = """
+mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
+  updateProjectBaseline (input: {filter: {id: [$project_baseline_id]} set: $fields}) {
+    numUids
+  }
+}
+    """
+
+    for issue in issues:
+        if issue['key'] in map_jira_pmt:
+            issueCL = jira.get_issue_changelog(jira_info, issue['key'])
+            pb = {}
+
+            for link in issue['fields']['issuelinks']:
+                if link['type']['inward'] == 'split from' and 'inwardIssue' in link:
+                    pb['parent'] = {"id": map_jira_pmt[link['inwardIssue']['key']]}
+
+            if issue['fields']['customfield_11737'] or issue['fields']['timespent']:
+                if issue['fields']['customfield_11737'] and issue['fields']['timespent']:
+                    pb['worktime'] = issue['fields']['customfield_11737'] if issue['fields']['customfield_11737'] > issue['fields']['timespent'] else issue['fields']['timespent']
+                elif issue['fields']['timespent']:
+                    pb['worktime'] = issue['fields']['timespent']
+                elif issue['fields']['customfield_11737']:
+                    pb['worktime'] = issue['fields']['customfield_11737']
+                if 'worktime' in pb:
+                    pb['worktime'] = str(pb['worktime']/3600) + 'h'
+
+            start = jira.get_issue_first_transition_date(issueCL, ["In Development", "In Progress"])
+            finish = jira.get_issue_last_transition_date(issueCL, ["Closed"])
+            if start: pb['start'] = rfc3339.rfc3339(start)
+            if finish: pb['finish'] = rfc3339.rfc3339(finish)
+
+            if pb: 
+                request_gql(url, mutation, {
+                    "project_baseline_id": map_jira_pmt[issue['key']],
+                    "fields": pb
+                })
 
     return
+
+
+def sync_baseline(url: str, jira_info: dict, issues: dict, baseline_id: str, fields_map: dict):
+
+    query = """
+query ($jira_ids: [String!]! $baseline_id: ID!) {
+  queryExternalTool (filter: {externalID: {in: $jira_ids}}) {
+    externalID
+    project {baselines (filter: {id: [$baseline_id]}) {projects {id}}}
+  }
+}
+    """
+    response = request_gql(url, query, {"jira_ids": [issue['key'] for issue in issues]})
+    map_jira_pmt = {}
+    for i in response['data']['queryExternalTool']:
+        map_jira_pmt[i['externalID']] = i['project']['baseline']['id']
+
+    mutation = """
+mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
+  updateProjectBaseline (input: {filter: {id: [$project_baseline_id]} set: $fields}) {
+    numUids
+  }
+}
+    """
+
+    for issue in issues:
+        if issue['key'] in map_jira_pmt:
+            pb = {}
+
+            if 'parent' in fields_map:
+                for link in issue['fields']['issuelinks']:
+                    if link['type']['inward'] == fields_map['parent'] and 'inwardIssue' in link:
+                        pb['parent'] = {"id": map_jira_pmt[link['inwardIssue']['key']]}
+
+            if 'worktime' in fields_map and issue['fields'][fields_map['worktime']]:
+                pb['worktime'] = str(issue['fields']['timespent']/3600) + 'h'
+
+            # if issue['fields']['customfield_11737']: 
+            #   pb['start'] = rfc3339.rfc3339(issue['fields']['customfield_11737'])
+            # if issue['fields']['customfield_11737']: 
+            #   pb['finish'] = rfc3339.rfc3339(issue['fields']['customfield_11737'])
+
+            if pb: 
+                request_gql(url, mutation, {
+                    "project_baseline_id": map_jira_pmt[issue['key']],
+                    "fields": pb
+                })
+
+    return
+
 
 
 
@@ -209,8 +312,8 @@ if __name__ == "__main__":
 
     # sync_baseline_from_jira(baseline_id, url, jira_info)
 
-    p = sync_issues_and_projects(url, jira_info, "project=pp and labels=p2_v3")
-
+    issues = sync_issues_and_projects(url, jira_info, "project=pp and labels=p2_v3")
+    sync_default_baseline(url, jira_info, issues)
 
 
 

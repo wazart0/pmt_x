@@ -66,3 +66,5 @@ def get_issue_last_transition_date(issueCL: dict, toStatus: str):
         date = get_change_transition_date(change, toStatus)
         if date is not None:    return date
     return None
+
+    
