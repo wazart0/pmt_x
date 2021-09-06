@@ -3,7 +3,7 @@ import sys
 import time
 
 
-
+# print(sys.argv)
 url = sys.argv[1]
 
 query = '''

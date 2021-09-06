@@ -1,6 +1,7 @@
 import requests
 import sys
 import os
+import time
 
 
 
@@ -16,10 +17,19 @@ for filename in os.listdir(path):
 
 response = requests.post(url, data=schema)
 
-
-if response.status_code != 200:
-    print('Problem appeared on endpoint: ' + url)
-    print(response.json())
-    exit(1)
+while True:
+    if response.status_code == 200 and 'errors' in response.json():
+        print('Problem appeared on endpoint: ' + url)
+        print(response.json()['errors'])
+        print('Retrying connection in 10s ...')
+        time.sleep(10)
+        response = requests.post(url, data=schema)
+    elif response.status_code != 200 or 'errors' in response.json():
+        print('Problem appeared on endpoint: ' + url)
+        print(response.text)
+        exit(1)
+    else:
+        break
+    
 
 print(response.json())
