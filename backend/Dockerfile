@@ -1,7 +1,6 @@
 FROM python:3
 
-RUN pip3 install \
-            requests
-
+COPY requirements_dev.txt /app/requirements_dev.txt
+RUN pip3 install -r /app/requirements_dev.txt
 
 CMD [ "sleep" "infinity" ]

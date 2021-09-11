@@ -1,2 +1,2 @@
 
-docker build -t dev_pmtx_be . $PSScriptRoot
+docker build -t dev_pmtx_be -f $PSScriptRoot/Dockerfile $PSScriptRoot

@@ -57,6 +57,21 @@ def update_item(item_id: int, item: TaskAllocatorInput):
 
 
 
+
+
+class CreateBaseline(BaseModel):
+    url: str
+    src_baseline_id: str
+    trg_baseline_name: str
+
+@app.post("/create_baseline/")
+def create_baseline(item: CreateBaseline):
+    
+    return {"new_baseline_id": ""}
+
+
+
+
 class JiraSynchronizer(BaseModel):
     url: str
     project_id: str

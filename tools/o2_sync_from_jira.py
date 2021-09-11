@@ -7,38 +7,6 @@ import lib.jira.jira as jira
 
 
 
-def request_gql(url: str, query: str, variables: dict) -> dict:
-    r = requests.post(url=url + 'graphql', json={"query": query, "variables": variables})
-    if r.status_code != 200 or "errors" in r.json():
-        # print("ERROR: record not ingested: " + str(url) + "\n" + str(r.status_code) + "\n" + str(r.json()) + "\n" + str(query))
-        print("ERROR:")
-        print("Problem occured while sending to PMT X:")
-        print("URL:", url)
-        print("QUERY:", query)
-        print("VARIABLES:")
-        print(json.dumps(variables, indent=4))
-        print("RESPONSE:")
-        print(json.dumps(r.json(), indent=4))
-        raise Exception("Problem occured while sinding to PMT X")
-    return r.json()
-
-
-def request_mutate(url: str, mutation: dict):
-    r = requests.post(url=url + 'mutate?commitNow=true', json=mutation)
-    if r.status_code != 200 or "errors" in r.json():
-        # print("ERROR: record not ingested: " + str(url) + "\n" + str(r.status_code) + "\n" + str(r.json()) + "\n" + str(query))
-        print("ERROR:")
-        print("Problem occured while sending to PMT X:")
-        print("URL:", url)
-        print("MUTATION:")
-        print(json.dumps(mutation, indent=4))
-        print("RESPONSE:")
-        print(json.dumps(r.json(), indent=4))
-        raise Exception("Problem occured while sinding to PMT X")
-    return r.json()
-
-
-
 
 
 def sync_baseline_from_jira(baseline_id: str, url: str, jira_info: dict) -> None:
@@ -100,7 +68,9 @@ def sync_baseline_from_jira(baseline_id: str, url: str, jira_info: dict) -> None
 
 
 
-def sync_issues_and_projects(url: str, jira_info: dict, jql: str):
+
+
+def sync_issues_and_projects_by_jql(url: str, jira_info: dict, jql: str):
 
     issues = jira.get_issues(jira_info, jql)
     parsed_issues = []
@@ -110,7 +80,7 @@ def sync_issues_and_projects(url: str, jira_info: dict, jql: str):
             "description": issue["fields"]["description"],
             "externalTool": [{
                 "externalID": issue["key"],
-                "name": "o2 jira",
+                "name": jira_info["name"],
                 "type": "Jira",
                 "url": jira_info["url"],
                 "urlSubpath": "rest/api/2/issue/" + issue["key"],
@@ -189,7 +159,9 @@ mutation ($projects: [AddProjectInput!]!) {
 
 
 
-def sync_default_baseline(url: str, jira_info: dict, issues: dict):
+## TODO: add parent when epic, task, sub-task (as higher priority compared to links)
+## TODO: add predecessors
+def sync_default_baseline(url: str, jira_info: dict, issues: dict, baseline_root_id = None): 
 
     query = """
 query ($jira_ids: [String!]!) {
@@ -217,7 +189,7 @@ mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
             issueCL = jira.get_issue_changelog(jira_info, issue['key'])
             pb = {}
 
-            for link in issue['fields']['issuelinks']:
+            for link in issue['fields']['issuelinks']: # TODO: add predecessors
                 if link['type']['inward'] == 'split from' and 'inwardIssue' in link:
                     pb['parent'] = {"id": map_jira_pmt[link['inwardIssue']['key']]}
 
@@ -236,6 +208,9 @@ mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
             if start: pb['start'] = rfc3339.rfc3339(start)
             if finish: pb['finish'] = rfc3339.rfc3339(finish)
 
+            if baseline_root_id is not None and 'parent' not in pb:
+                pb['parent'] = {"id": baseline_root_id}
+
             if pb: 
                 request_gql(url, mutation, {
                     "project_baseline_id": map_jira_pmt[issue['key']],
@@ -245,75 +220,122 @@ mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
     return
 
 
-def sync_baseline(url: str, jira_info: dict, issues: dict, baseline_id: str, fields_map: dict):
+# WARNING: needs refinement before start using, probably doesn't make any sense
+# def sync_baseline(url: str, jira_info: dict, issues: dict, baseline_id: str, fields_map: dict):
 
-    query = """
-query ($jira_ids: [String!]! $baseline_id: ID!) {
-  queryExternalTool (filter: {externalID: {in: $jira_ids}}) {
-    externalID
-    project {baselines (filter: {id: [$baseline_id]}) {projects {id}}}
-  }
-}
-    """
-    response = request_gql(url, query, {"jira_ids": [issue['key'] for issue in issues]})
-    map_jira_pmt = {}
-    for i in response['data']['queryExternalTool']:
-        map_jira_pmt[i['externalID']] = i['project']['baseline']['id']
+#     query = """
+# query ($jira_ids: [String!]! $baseline_id: ID!) {
+#   queryExternalTool (filter: {externalID: {in: $jira_ids}}) {
+#     externalID
+#     project {baselines (filter: {id: [$baseline_id]}) {projects {id}}}
+#   }
+# }
+#     """
+#     response = request_gql(url, query, {"jira_ids": [issue['key'] for issue in issues]})
+#     map_jira_pmt = {}
+#     for i in response['data']['queryExternalTool']:
+#         map_jira_pmt[i['externalID']] = i['project']['baseline']['id']
 
-    mutation = """
-mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
-  updateProjectBaseline (input: {filter: {id: [$project_baseline_id]} set: $fields}) {
+#     mutation = """
+# mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
+#   updateProjectBaseline (input: {filter: {id: [$project_baseline_id]} set: $fields}) {
+#     numUids
+#   }
+# }
+#     """
+
+#     for issue in issues:
+#         if issue['key'] in map_jira_pmt:
+#             pb = {}
+
+#             if 'parent' in fields_map:
+#                 for link in issue['fields']['issuelinks']:
+#                     if link['type']['inward'] == fields_map['parent'] and 'inwardIssue' in link:
+#                         pb['parent'] = {"id": map_jira_pmt[link['inwardIssue']['key']]}
+
+#             if 'worktime' in fields_map and issue['fields'][fields_map['worktime']]:
+#                 pb['worktime'] = str(issue['fields']['timespent']/3600) + 'h'
+
+#             # if issue['fields']['customfield_11737']: 
+#             #   pb['start'] = rfc3339.rfc3339(issue['fields']['customfield_11737'])
+#             # if issue['fields']['customfield_11737']: 
+#             #   pb['finish'] = rfc3339.rfc3339(issue['fields']['customfield_11737'])
+
+#             if pb: 
+#                 request_gql(url, mutation, {
+#                     "project_baseline_id": map_jira_pmt[issue['key']],
+#                     "fields": pb
+#                 })
+
+#     return
+
+
+
+
+
+def import_project_from_jira(url: str, jira_info: dict, project: str) -> str:
+    issues = sync_issues_and_projects_by_jql(url, jira_info, "project=" + project)
+    # create coresponding project
+    # print(issues[0]['fields']['project'])
+
+    root_project = {
+        "name": issues[0]['fields']['project']['name'],
+        "description": "",
+        "externalTool": [{
+            "externalID": issues[0]['fields']['project']['key'],
+            "name": jira_info["name"],
+            "type": "Jira",
+            "url": jira_info["url"],
+            "urlSubpath": issues[0]['fields']['project']['self']
+        }],
+        "baseline": {}
+    }
+
+
+    create_projects = '''
+mutation ($projects: [AddProjectInput!]!) {
+  addProject (input: $projects) {
     numUids
+    project {
+      id
+      baseline {
+        id
+      }
+    }
   }
 }
-    """
+    '''
 
-    for issue in issues:
-        if issue['key'] in map_jira_pmt:
-            pb = {}
+    response = request_gql(url, create_projects, {"projects": [root_project]})
 
-            if 'parent' in fields_map:
-                for link in issue['fields']['issuelinks']:
-                    if link['type']['inward'] == fields_map['parent'] and 'inwardIssue' in link:
-                        pb['parent'] = {"id": map_jira_pmt[link['inwardIssue']['key']]}
+    project_root_id = response['data']['addProject']['project'][0]['id']
+    project_baseline_root_id = response['data']['addProject']['project'][0]['baseline']['id']
 
-            if 'worktime' in fields_map and issue['fields'][fields_map['worktime']]:
-                pb['worktime'] = str(issue['fields']['timespent']/3600) + 'h'
+    sync_default_baseline(url, jira_info, issues, project_baseline_root_id)
 
-            # if issue['fields']['customfield_11737']: 
-            #   pb['start'] = rfc3339.rfc3339(issue['fields']['customfield_11737'])
-            # if issue['fields']['customfield_11737']: 
-            #   pb['finish'] = rfc3339.rfc3339(issue['fields']['customfield_11737'])
-
-            if pb: 
-                request_gql(url, mutation, {
-                    "project_baseline_id": map_jira_pmt[issue['key']],
-                    "fields": pb
-                })
-
-    return
-
-
+    return project_root_id
 
 
 
 if __name__ == "__main__":
 
-    url = "http://localhost:8080/"
+    url = "http://192.168.5.20:8080/"
 
 
     jira_info = {
+        "name": "O2 jira",
         "url": "https://tangramcare.atlassian.net/",
         "username": "awaz@ownedoutcomes.com",
         "api_token": "6Pu9J7zSN4wBqwqgSREsAE08",
     }
 
-    # baseline_id = "0x2df2"
 
-    # sync_baseline_from_jira(baseline_id, url, jira_info)
+    # root_id = import_project_from_jira(url, jira_info, "pp and labels=p2_v3")
 
-    issues = sync_issues_and_projects(url, jira_info, "project=pp and labels=p2_v3")
-    sync_default_baseline(url, jira_info, issues)
+
+    # issues = sync_issues_and_projects_by_jql(url, jira_info, "project=pp and labels=p2_v3")
+    # sync_default_baseline(url, jira_info, issues)
+
 
 
 

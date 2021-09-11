@@ -1,0 +1,6 @@
+requests
+rfc3339
+python-dateutil
+pytz
+fastapi
+uvicorn[standard]

@@ -63,9 +63,16 @@ Click me to display Date and Time.</button>
 
 
 
-<br><b>Baseline builder: </b>
-
+<br><b>Duplicate baseline: </b>
 <button id="create_baseline_button" onclick="create_baseline_window()">Create baseline</button>
+<input id="new_baseline_name" type="text" maxlength="512" placeholder="New baseline name"/>
+<label for="select_baseline">From baseline</label><select id="select_baseline"><option value=""></option></select>
+<label for="select_root"> if None select root</label><select id="select_root"><option value=""></option></select>
+<button id="create_baseline" onclick="create_baseline()">Create</button>
+
+
+
+<br><b>Baseline builder: </b>
 
 <button id="merge_baselines" onclick="baselineMerge()">Combine selected baselines</button>
 
@@ -135,6 +142,8 @@ Click me to display Date and Time.</button>
 
 
 
+
+    // ==================== get baselines ========================
     var query = `query {
         queryProject (filter: {has: baselines}) {
             id
@@ -145,8 +154,6 @@ Click me to display Date and Time.</button>
             }
         }
     }`
-
-
     fetch(url_graphql, {
         method: 'post',
         headers: {
@@ -158,7 +165,15 @@ Click me to display Date and Time.</button>
     .then(function (rjs) {
 
 
-        function update_selector_baseline_id(selector_label) {
+        function update_selector_baseline_id(selector_label, custom = []) {
+            for (var i in custom) {
+                var option = document.createElement('option')
+                option.baseline_id = null
+                option.text = 'None'
+                option.title = 'Default baseline'
+
+                document.querySelector(selector_label).add(option, null)
+            }
 
             for (var i in rjs['data']['queryProject']) {                
                 for (var j in rjs['data']['queryProject'][i]['baselines']) {
@@ -196,10 +211,72 @@ Click me to display Date and Time.</button>
         update_selector_baseline_id('#filter_baseline_3')
         update_selector_baseline_id('#filter_baseline_4')
 
+        update_selector_baseline_id('#select_baseline', ['none'])
+
         update_selector_with_labels('#project_baseline')
         update_selector_with_labels('#project_baseline_compare')
     })
     .catch(console.error);
+
+
+
+    // ==================== get root from default (None) baseline ========================
+    var query = `
+query {
+  roots: queryProjectBaseline (filter: {and: [{not: {has: parent}}, {has: children}]}) {
+    project {
+      id
+      name
+    }
+  }
+  parents: queryProjectBaseline (filter: {and: [{has: parent}, {has: children}]}) {
+    project {
+      id
+      name
+    }
+  }
+}
+    `
+    fetch(url_graphql, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+
+        function update_selector_baseline_id(selector_label, custom = []) {
+
+            var optgroup = document.createElement('optgroup');
+            optgroup.label = 'Root projects'
+            document.querySelector(selector_label).add(optgroup, null)
+            for (var i in rjs['data']['roots']) {                
+                var option = document.createElement('option')
+                option.project_id = rjs['data']['roots'][i]['project']['id']
+                option.text = rjs['data']['roots'][i]['project']['name']
+
+                document.querySelector(selector_label).add(option, null)
+            }
+
+            var optgroup = document.createElement('optgroup');
+            optgroup.label = 'Parent projects'
+            document.querySelector(selector_label).add(optgroup, null)
+            for (var i in rjs['data']['parents']) {                
+                var option = document.createElement('option')
+                option.project_id = rjs['data']['parents'][i]['project']['id']
+                option.text = rjs['data']['parents'][i]['project']['name']
+
+                document.querySelector(selector_label).add(option, null)
+            }
+        }
+
+        update_selector_baseline_id('#select_root')
+    })
+    .catch(console.error);
+
+
 
 
 
@@ -240,10 +317,12 @@ Click me to display Date and Time.</button>
                     if (projects[p]['externalTool'][i]['type'] == 'Jira'){
                         project['jira_id'] = projects[p]['externalTool'][i]['id']
                         project['jira_link'] = projects[p]['externalTool'][i]['url'] + "browse/" + projects[p]['externalTool'][i]['id']
-                        var custom = JSON.parse(projects[p]['externalTool'][i]['customFields'])
-                        var pr;
-                        for (pr in custom) {
-                            project[pr] = custom[pr]
+                        if (projects[p]['externalTool'][i]['customFields']) {
+                            var custom = JSON.parse(projects[p]['externalTool'][i]['customFields'])
+                            var pr;
+                            for (pr in custom) {
+                                project[pr] = custom[pr]
+                            }
                         }
                     }
                 }
