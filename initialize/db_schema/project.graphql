@@ -47,7 +47,7 @@ type Project @generate (
 	name: String! @search
 	description: String
 
-    baseline: ProjectBaseline! @hasInverse(field: project)
+    baseline: ProjectBaseline
 	
     baselines: [Baseline] @hasInverse(field: root)
 

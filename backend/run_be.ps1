@@ -1,0 +1,1 @@
+docker run -d -p 7500:8000 -v $PSScriptRoot\..:/app --network pmtx_network --name pmt_x_be dev_pmtx_be bash -c "cd /app/tools && uvicorn be_main:app --reload --host 0.0.0.0"

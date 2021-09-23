@@ -4,3 +4,6 @@ python-dateutil
 pytz
 fastapi
 uvicorn[standard]
+pandas
+openpyxl
+pydgraph

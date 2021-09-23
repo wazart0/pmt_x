@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<!-- <h1>My First JavaScript</h1>
+
+<button type="button"
+onclick="document.getElementById('demo').innerHTML = Date()">
+Click me to display Date and Time.</button>
+
+<p id="demo"></p> -->
+
+
+<!-- <link rel="stylesheet" href="https://uicdn.toast.com/grid/latest/tui-grid.css" /> -->
+
+<script src="https://cdn.anychart.com/releases/8.9.0/js/anychart-core.min.js" type="text/javascript"></script>
+<script src="https://cdn.anychart.com/releases/8.9.0/js/anychart-gantt.min.js" type="text/javascript"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/jsframe.js/lib/jsframe.min.js"></script>
+
+<script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+
+
+
+<!-- <script type="text/javascript" src="./example_data.js"></script> -->
+
+
+
+<!-- <label for="root_project">Select root:</label>
+<select id="root_project" onchange='x();'><option value=""></option></select> -->
+
+<a href="gantt.html">Gantt</a> <a href="resources.html">Resources</a> 
+
+<br>
+
+<label for="filter_query"><b>Filter query: </b></label>
+<input id="filter_query" type="text" maxlength="512" class="searchField" onchange='get_filtered_projects();'/>
+
+<br>
+
+<label for="baseline">Select baseline:</label>
+<select id="baseline" onchange='get_filtered_projects();'><option value=""></option></select>
+
+<button id="collapseAllButton" onclick="collapseAll()">Collapse All</button>
+<button id="expandAllButton" onclick="expandAll()">Expand All</button>
+
+<label for="baseline_compare">Select baseline compare:</label>
+<select id="baseline_compare" onchange='get_filtered_projects();'><option value=""></option></select>
+
+
+
+<br><b>Duplicate baseline: </b>
+<button id="create_baseline_button" onclick="create_baseline_window()">Create baseline</button>
+<input id="new_baseline_name" type="text" maxlength="512" placeholder="New baseline name"/>
+<label for="select_baseline">From baseline</label><select id="select_baseline"><option value=""></option></select>
+<label for="select_root"> if None select root</label><select id="select_root"><option value=""></option></select>
+<button id="create_baseline" onclick="create_baseline()">Create</button>
+
+
+
+<br><b>Baseline builder: </b>
+
+<button id="merge_baselines" onclick="baselineMerge()">Combine selected baselines</button>
+
+<label for="auto_assign">Auto assign (double click)</label>
+<input type="checkbox" id="auto_assign">
+
+
+
+
+
+<script type="text/babel" class="code-js">
+
+    // var gridData = []
+
+    var anychart_data = []
+
+    const url = 'http://192.168.5.20:8080/'
+    const url_be = 'http://192.168.5.20:7500/'
+
+    const url_graphql = url + 'graphql'
+    const url_query = url + 'query'
+
+
+
+
+    var query = `query {
+        queryProject (filter: {has: baselines}) {
+            id
+            name
+        }
+    }`
+
+
+    fetch(url_graphql, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+
+        function update_selector(selector_label) {
+            for (var i in rjs['data']['queryProject']) {
+                var option = document.createElement('option')
+                option.value = rjs['data']['queryProject'][i]['id']
+                option.project_id = rjs['data']['queryProject'][i]['id']
+                option.text = rjs['data']['queryProject'][i]['name']
+
+                document.querySelector(selector_label).add(option, null)
+            }
+        }
+
+        // update_selector('#filter_root')
+        // if (rjs['data']['queryProject'].length == 1) {
+        //     document.querySelector('#filter_root').value = rjs['data']['queryProject'][0]['id']
+        // }
+        // console.log(document.querySelector('#filter_root').selectedOptions[0].project_id)
+
+    })
+    .catch(console.error);
+
+
+
+
+
+
+
+
+    // ==================== get baselines ========================
+    var query = `query {
+        queryProject (filter: {has: baselines}) {
+            id
+            name
+            baselines {
+                id
+                name
+            }
+        }
+    }`
+    fetch(url_graphql, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+
+
+        function update_selector_baseline_id(selector_label, custom = []) {
+            for (var i in custom) {
+                var option = document.createElement('option')
+                option.baseline_id = null
+                option.text = 'None'
+                option.title = 'Default baseline'
+
+                document.querySelector(selector_label).add(option, null)
+            }
+
+            for (var i in rjs['data']['queryProject']) {                
+                for (var j in rjs['data']['queryProject'][i]['baselines']) {
+                    var option = document.createElement('option')
+                    option.project_id = rjs['data']['queryProject'][i]['id']
+                    option.baseline_id = rjs['data']['queryProject'][i]['baselines'][j]['id']
+                    option.text = rjs['data']['queryProject'][i]['baselines'][j]['id']
+                    option.title = rjs['data']['queryProject'][i]['name'] + ' / ' + rjs['data']['queryProject'][i]['baselines'][j]['name']
+
+                    document.querySelector(selector_label).add(option, null)
+                }
+            }
+        }
+
+        function update_selector_with_labels(selector_label) {
+            for (var i in rjs['data']['queryProject']) {
+                var optgroup = document.createElement('optgroup');
+                optgroup.label = rjs['data']['queryProject'][i]['name']
+
+                document.querySelector(selector_label).add(optgroup, null)
+                
+                for (var j in rjs['data']['queryProject'][i]['baselines']) {
+                    var option = document.createElement('option')
+                    option.project_id = rjs['data']['queryProject'][i]['id']
+                    option.baseline_id = rjs['data']['queryProject'][i]['baselines'][j]['id']
+                    option.text = '- ' + rjs['data']['queryProject'][i]['baselines'][j]['name']
+
+                    document.querySelector(selector_label).add(option, null)
+                }
+            }
+        }
+
+        // update_selector_baseline_id('#filter_baseline_1')
+        // update_selector_baseline_id('#filter_baseline_2')
+        // update_selector_baseline_id('#filter_baseline_3')
+        // update_selector_baseline_id('#filter_baseline_4')
+
+        update_selector_baseline_id('#select_baseline', ['none'])
+
+        update_selector_with_labels('#baseline')
+        update_selector_with_labels('#baseline_compare')
+    })
+    .catch(console.error);
+
+
+
+    // ==================== get root from default (None) baseline ========================
+    var query = `
+query {
+  roots: queryProjectBaseline (filter: {and: [{not: {has: parent}}, {has: children}]}) {
+    project {
+      id
+      name
+    }
+  }
+  parents: queryProjectBaseline (filter: {and: [{has: parent}, {has: children}]}) {
+    project {
+      id
+      name
+    }
+  }
+}
+    `
+    fetch(url_graphql, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+
+        function update_selector_baseline_id(selector_label, custom = []) {
+
+            var optgroup = document.createElement('optgroup');
+            optgroup.label = 'Root projects'
+            document.querySelector(selector_label).add(optgroup, null)
+            for (var i in rjs['data']['roots']) {                
+                var option = document.createElement('option')
+                option.project_id = rjs['data']['roots'][i]['project']['id']
+                option.text = rjs['data']['roots'][i]['project']['name']
+
+                document.querySelector(selector_label).add(option, null)
+            }
+
+            var optgroup = document.createElement('optgroup');
+            optgroup.label = 'Parent projects'
+            document.querySelector(selector_label).add(optgroup, null)
+            for (var i in rjs['data']['parents']) {                
+                var option = document.createElement('option')
+                option.project_id = rjs['data']['parents'][i]['project']['id']
+                option.text = rjs['data']['parents'][i]['project']['name']
+
+                document.querySelector(selector_label).add(option, null)
+            }
+        }
+
+        update_selector_baseline_id('#select_root')
+    })
+    .catch(console.error);
+
+
+
+
+
+
+    function get_pose(project_id, list_of_projects) {
+        for (var i = 0; i < list_of_projects.length; i++) {
+            if (list_of_projects[i]['project']['id'] == project_id) {
+                return i;
+            }
+        }
+        return null;
+    }
+
+
+
+
+    function get_filtered_projects() {
+
+        var info = {
+            "url": url,
+            "filter": document.getElementById('filter_query').value,
+            "baseline": document.querySelector('#baseline').selectedOptions[0].baseline_id,
+            "baseline_compare": document.querySelector('#baseline_compare').selectedOptions[0].baseline_id
+        }
+        if (document.querySelector('#baseline').selectedOptions[0].value == "") {
+            info['baseline'] = ""
+        }
+        if (document.querySelector('#baseline_compare').selectedOptions[0].value == "") {
+            info['baseline_compare'] = ""
+        }
+
+
+        fetch(url_be + "baselines_anychart_format/", {
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(info)
+        })
+        .then(res => res.json())
+        .then(function (rjs) {
+
+            refresh_anychart_data(rjs)
+
+        })
+        .catch(console.error);
+    }
+
+
+
+    function refresh_anychart_data(anychart_data) {
+        if (anychart_data){
+            chart.data(anychart.data.tree(anychart_data, "as-table"));
+            chart.fitAll();
+        }
+    }
+
+
+
+    function get_anychart_data_pose(project_id) {
+        for (var i = 0; i < anychart_data.length; i++) {
+            if (anychart_data[i]['id'] == project_id) {
+                return i;
+            }
+        }
+        return null;
+    }
+
+
+
+    function update_anychart_data_baseline(projects) {
+        for (var i in projects) {
+            // var element = chart.data().search('id', projects[i]['project']['id'])
+            // if (projects[i]['start']) { element.set('actualStart', projects[i]['start']) }
+            // if (projects[i]['finish']) { element.set('actualEnd', projects[i]['finish']) }
+
+            var pose = get_anychart_data_pose(projects[i]['project']['id'])
+            if (pose) {
+                if (projects[i]['wbs']) {
+                    anychart_data[pose]['wbs'] = projects[i]['wbs']
+                } 
+                if (projects[i]['worktime']) {
+                    anychart_data[pose]['actualWorktime'] = projects[i]['worktime']
+                } 
+                if (projects[i]['start']) {
+                    anychart_data[pose]['actualStart'] = projects[i]['start']
+                }
+                if (projects[i]['finish']) {
+                    anychart_data[pose]['actualEnd'] = projects[i]['finish']
+                }
+                if (projects[i]['parent']) {
+                    anychart_data[pose]['parent'] = projects[i]['parent']['project']['id']
+                }
+            }
+        }
+    }
+
+
+
+    function update_anychart_data_baseline_compare(projects) {
+        for (var i in projects) {
+            var pose = get_anychart_data_pose(projects[i]['project']['id'])
+            if (pose) {
+                if (projects[i]['worktime']) {
+                    anychart_data[pose]['baselineWorktime'] = projects[i]['worktime']
+                } 
+                if (projects[i]['start']) {
+                    anychart_data[pose]['baselineStart'] = projects[i]['start']
+                }
+                if (projects[i]['finish']) {
+                    anychart_data[pose]['baselineEnd'] = projects[i]['finish']
+                }
+            }
+        }
+    }
+
+
+    function clean_anychart_fields(list_of_fields) {
+        for (var i = 0; i < anychart_data.length; i++) {
+            for (var j = 0; j < list_of_fields.length; j++) {
+                if (list_of_fields[j] in anychart_data[i]) {
+                    delete anychart_data[i][list_of_fields[j]]
+                }
+            }
+        }
+        refresh_anychart_data()
+    }
+
+
+    function get_baseline(baseline_id, compare) {
+        // var query = `query {
+        //     getBaseline(id: "` + baseline_id + `") {
+        //         projects {
+        //             project {id}
+        //             worktime
+        //             start
+        //             finish
+        //             wbs
+        //             parent {project {id}}
+        //             predecessors {type project {project {id}}}
+        //         }
+        //     }
+        // }`
+
+        var query = `query pb ($projects_ids: string!) {    var(func: uid($projects_ids)) { Project.baseline { project_id as uid } }    projects (func: uid(project_id)) {      wbs: ProjectBaseline.wbs      worktime: ProjectBaseline.worktime      start: ProjectBaseline.start      finish: ProjectBaseline.finish      project: ProjectBaseline.project { id: uid }      parent: ProjectBaseline.parent {project: ProjectBaseline.project {id: uid}}      predecessors: ProjectBaseline.predecessors {type: Predecessor.type project: Predecessor.project {project: ProjectBaseline.project {id: uid}}}    }  }`
+
+        var tmp = "["
+        var traverser = chart.data().getTraverser()
+        while (traverser.advance()){
+            tmp = tmp + traverser.get('id') + ","
+        }
+        tmp = tmp + "]"
+
+        var variables = {
+            "$projects_ids": tmp
+        }
+
+
+        fetch(url_query, {
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query, variables })
+        })
+        .then(res => res.json())
+        .then(function (rjs) {
+            if (compare) {update_anychart_data_baseline_compare(rjs['data']['projects'])}
+            else {update_anychart_data_baseline(rjs['data']['projects'])}
+            refresh_anychart_data()
+            // chart.fitAll();
+        })
+        .catch(console.error);
+    }
+
+
+
+
+
+    var chart = anychart.ganttProject(); 
+    
+    var buttons = chart.dataGrid().buttons();
+    // configure data grid buttons in the normal state
+    buttons.normal().content("+");
+    buttons.normal().fontColor("#ef6c00");
+
+    // configure data grid buttons in the hover state
+    buttons.hovered().content("+");
+    buttons.hovered().fontColor(anychart.color.lighten("#ef6c00"));
+
+    // configure data grid buttons in the selected state
+    buttons.selected().content("-");
+    buttons.selected().fontColor("#64b5f6");
+
+    chart.dataGrid().column(0).labels().format("");
+    chart.dataGrid().column(0).collapseExpandButtons(true);
+    chart.dataGrid().column(0).width(10);
+
+    chart.dataGrid().column(1).title().text("ID");
+    chart.dataGrid().column(1).depthPaddingMultiplier(0);
+    chart.dataGrid().column(1).collapseExpandButtons(false);
+    chart.dataGrid().column(1).width(60);
+    chart.dataGrid().column(1).labels().useHtml(true);
+    chart.dataGrid().column(1).labels().format("<a href='{%jira_link}'>{%id}</a>");
+
+
+    chart.dataGrid().column(2).title().text("Name")
+    chart.dataGrid().column(2).labels().format("{%name}");
+    chart.dataGrid().column(2).width(400);
+
+    chart.dataGrid().column(3).title().text("Actual worktime")
+    chart.dataGrid().column(3).labels().format("{%actualWorktime}");
+    chart.dataGrid().column(3).width(40);
+
+    chart.dataGrid().column(4).title().text("Compare worktime")
+    chart.dataGrid().column(4).labels().format("{%baselineWorktime}");
+    chart.dataGrid().column(4).width(40);
+
+    chart.splitterPosition("567px");
+
+    // chart.getTimeline().tooltip().format(
+    //     "Start: {%actual_development_time_start}\nFinish: {%actual_development_time_finish}"
+    // )
+
+    chart.container("container");
+    chart.draw();
+    chart.fitAll();
+
+
+    get_filtered_projects()
+
+
+    chart.listen("rowDblClick", function (e) {
+        var baseline_selector = document.querySelector('#project_baseline').selectedOptions[0]
+        if (document.getElementById("auto_assign").checked & baseline_selector.text != "") {
+            console.log("auto assign", e['item']['oa']['id'])
+
+            var params = {
+                "url": url_graphql,
+                "baseline_id": baseline_selector.baseline_id,
+                "project_id": e['item']['oa']['id']
+            }
+
+            var url = url_graphql
+            var baseline_id = baseline_selector.baseline_id
+            var project_id = e['item']['oa']['id']
+
+            console.log(params)
+            fetch(url_be + 'allocate_single_task/', {
+                method: 'post',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url, baseline_id, project_id })
+            })
+            .then(res => res.json())
+            .then(function (rjs) {
+                console.log(rjs)
+                project_baseline_change()
+            })
+            .catch(console.error);
+        }
+    });     
+
+
+
+
+
+function project_baseline_change() {
+    // var actual_baseline_selector = document.querySelector('#project_baseline').selectedOptions[0]
+    // get_project_baseline(actual_baseline_selector.project_id, actual_baseline_selector.baseline_id)
+
+    // document.querySelector('#project_baseline_compare').selectedIndex = 0
+
+    var baseline_selector = document.querySelector('#project_baseline').selectedOptions[0]
+    clean_anychart_fields(['wbs', 'actual_worktime', 'actualStart', 'actualEnd', 'parent'])
+    if (baseline_selector.text != "") {
+        get_baseline(baseline_selector.baseline_id, false)
+    }
+    else {
+
+    }
+}
+
+
+function project_baseline_compare_change() {
+    var compare_baseline_selector = document.querySelector('#project_baseline_compare').selectedOptions[0]
+    clean_anychart_fields(['compare_worktime', 'baselineStart', 'baselineEnd'])
+    if (compare_baseline_selector.text != "") {
+        get_baseline(compare_baseline_selector.baseline_id, true)
+    }
+}
+
+
+function baselineMerge() {
+    var baseline_selector = document.querySelector('#project_baseline').selectedOptions[0]
+    var compare_baseline_selector = document.querySelector('#project_baseline_compare').selectedOptions[0]
+    if (baseline_selector.text != "" & compare_baseline_selector.text != "") {
+        console.log("merge")
+    }
+}
+
+
+// collapse all tasks
+function collapseAll() {
+    chart.collapseAll();  
+}
+
+// expand all tasks
+function expandAll() {
+    chart.expandAll();  
+}
+
+
+function create_baseline_window() { 
+    const jsFrame = new JSFrame();
+    //Create window
+    const frame = jsFrame.create({
+        title: 'Create baseline',
+        left: 300, top: 300, width: 320, height: 220,
+        movable: true,//Enable to be moved by mouse
+        resizable: true,//Enable to be resized by mouse
+        // html: '<div id="my_element" style="padding:10px;font-size:12px;color:darkgray;">Contents of window</div>'
+        html: `
+        <label for="new_baseline_name"><div id="my_element" style="font-size:15px;color:black;">Baseline name</div></label>
+        <input id="new_baseline_name" type="text" maxlength="512" class="searchField" onchange='create_baseline();' placeholder="Original plan"/>
+        `
+    }).show()
+}
+
+
+function create_baseline() {
+    console.log('create_baseline')
+
+    var data = {
+        "url": url,
+        "root_project_id": document.querySelector('#select_root').selectedOptions[0].project_id,
+        "name": document.getElementById('new_baseline_name').value
+    }
+    if (document.querySelector('#select_baseline').selectedOptions[0].baseline_id) {
+        data['source_baseline_id'] = document.querySelector('#select_baseline').selectedOptions[0].baseline_id
+    }
+    else {
+        data['source_baseline_id'] = ""
+    }
+    
+    fetch(url_be + "duplicate/", {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/json',
+            'Origin': 'lol'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(function (rjs) {
+        console.log("Created baseline id: ", rjs)
+    })
+    .catch(console.error);
+}
+
+</script>
+
+
+
+<div style="height: 700px;" id="container"></div>
+
+</body>
+</html> 

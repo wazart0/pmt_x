@@ -10,11 +10,10 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -24,7 +23,44 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return {"Service": "up @awaz"}
+
+
+
+
+class Baselines(BaseModel):
+    url: str
+    filter: str
+    baseline: str
+    baseline_compare: str
+
+@app.post("/baselines_anychart_format/")
+def get_baselines(item: Baselines):
+    from get_baselines_anychart import get_default_baseline
+    input_json = jsonable_encoder(item)
+    return get_default_baseline(input_json['url'])['data']['projects']
+
+
+
+
+class BaselinesDuplicate(BaseModel):
+    url: str
+    source_baseline_id: str
+    root_project_id: str
+    name: str
+
+@app.post("/duplicate/")
+def duplicate(item: BaselinesDuplicate):
+    from duplicate_baseline import create_duplicate
+    input_json = jsonable_encoder(item)
+    return {"baseline_id": create_duplicate(
+        input_json['url'],
+        input_json['source_baseline_id'],
+        input_json['root_project_id'],
+        input_json['name']
+    )}
+
+
 
 
 
@@ -82,3 +118,4 @@ class JiraSynchronizer(BaseModel):
 def import_missing_issues_from_jira(item: JiraSynchronizer):
     
     return {"new_projects": ""}
+

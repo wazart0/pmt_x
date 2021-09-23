@@ -6,3 +6,6 @@ docker network create pmtx_network
 
 . $PSScriptRoot/../backend/python3.ps1 ./initialize/initialize_db_schema.py http://pmt_x_db:8080/admin/schema
 . $PSScriptRoot/../backend/python3.ps1 ./initialize/db_data/init_tui_schemas.py http://pmt_x_db:8080/graphql
+
+
+. $PSScriptRoot/../backend/run_be.ps1
