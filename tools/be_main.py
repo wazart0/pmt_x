@@ -36,9 +36,14 @@ class Baselines(BaseModel):
 
 @app.post("/baselines_anychart_format/")
 def get_baselines(item: Baselines):
-    from get_baselines_anychart import get_default_baseline
+    from get_baselines_anychart import form_anychart_json
     input_json = jsonable_encoder(item)
-    return get_default_baseline(input_json['url'])['data']['projects']
+    return form_anychart_json(
+        input_json['url'], 
+        input_json['filter'], 
+        input_json['baseline'], 
+        input_json['baseline_compare']
+    )
 
 
 

@@ -47,11 +47,11 @@ type Project @generate (
 	name: String! @search
 	description: String
 
-    baseline: ProjectBaseline
+    projectBaselines: [ProjectBaseline] @hasInverse(field: project)
 	
     baselines: [Baseline] @hasInverse(field: root)
 
-    externalTool: [ExternalTool] @ hasInverse(field: project)
+    externalTool: [ExternalTool] @hasInverse(field: project)
 
     customFields: String
 }

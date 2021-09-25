@@ -23,7 +23,7 @@ def create_project_pb_externaltool(url: str, name: str, description = None, exte
     _:project <dgraph.type> "Project" .
     _:project <Project.name> {name} .
     {project_description}
-    _:project <Project.baseline> _:project_baseline .
+    _:project <Project.projectBaselines> _:project_baseline .
     _:project <Project.externalTool> _:exttool .
     
     _:project_baseline <dgraph.type> "ProjectBaseline" .
@@ -223,14 +223,15 @@ def sync_default_baseline(url: str, jira_info: dict, issues: dict, baseline_root
 query ($jira_ids: [String!]!) {
   queryExternalTool (filter: {externalID: {in: $jira_ids}}) {
     externalID
-    project {baseline {id}}
+    project {projectBaselines (filter: {not: {has: baseline}}) {id}}
   }
 }
     """
     response = request_gql(url, query, {"jira_ids": [issue['key'] for issue in issues]})
+    print(response)
     map_jira_pmt = {}
     for i in response['data']['queryExternalTool']:
-        map_jira_pmt[i['externalID']] = i['project']['baseline']['id']
+        map_jira_pmt[i['externalID']] = i['project']['projectBaselines'][0]['id']
 
     mutation = """
 mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
@@ -364,7 +365,7 @@ query ($jiraIDs: [String!]! $url: String!) {
     externalID
     project { 
       id
-      baseline { id }
+      projectBaselines (filter: {not: {has: baseline}}) { id }
     }
   }
 }
@@ -374,7 +375,7 @@ query ($jiraIDs: [String!]! $url: String!) {
     if response['data']['queryExternalTool']:
         ids = {
             'project_id': response['data']['queryExternalTool'][0]['project']['id'],
-            'project_baseline_id': response['data']['queryExternalTool'][0]['project']['baseline']['id'],
+            'project_baseline_id': response['data']['queryExternalTool'][0]['project']['projectBaselines'][0]['id'],
         }
     else:
         ids = create_project_pb_externaltool(
