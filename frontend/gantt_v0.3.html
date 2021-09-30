@@ -2,13 +2,6 @@
 <html>
 <body>
 
-<!-- <h1>My First JavaScript</h1>
-
-<button type="button"
-onclick="document.getElementById('demo').innerHTML = Date()">
-Click me to display Date and Time.</button>
-
-<p id="demo"></p> -->
 
 
 <!-- <link rel="stylesheet" href="https://uicdn.toast.com/grid/latest/tui-grid.css" /> -->
@@ -48,6 +41,9 @@ Click me to display Date and Time.</button>
 <select id="baseline_compare" onchange='get_filtered_projects();'><option value=""></option></select>
 
 
+<!-- <br><b>Import to baseline: </b> -->
+
+
 
 <br><b>Duplicate baseline: </b>
 <button id="create_baseline_button" onclick="create_baseline_window()">Create baseline</button>
@@ -71,6 +67,82 @@ Click me to display Date and Time.</button>
 
 
 
+
+
+<style type="text/css">
+    .tg  {border-collapse:collapse;border-spacing:0;}
+    .tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+      overflow:hidden;padding:10px 5px;word-break:normal;}
+    .tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+      font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+    .tg .tg-baqh{text-align:center;vertical-align:top}
+    .tg .tg-wa1i{font-weight:bold;text-align:center;vertical-align:middle}
+    .tg .tg-amwm{font-weight:bold;text-align:center;vertical-align:top}
+    .tg .tg-0lax{text-align:left;vertical-align:top}
+    </style>
+    <table class="tg">
+    <thead>
+      <tr>
+        <th class="tg-wa1i" rowspan="2">Projects summary</th>
+        <th class="tg-amwm" colspan="2">Total</th>
+        <th class="tg-amwm" colspan="3">Awaits (backlog)</th>
+        <th class="tg-amwm" colspan="3">Started</th>
+        <th class="tg-amwm" colspan="3">Finished</th>
+      </tr>
+      <tr>
+        <th class="tg-amwm">Number</th>
+        <th class="tg-amwm">Time [h]</th>
+        <th class="tg-amwm">Number</th>
+        <th class="tg-amwm">Time [h]</th>
+        <th class="tg-amwm">[%]</th>
+        <th class="tg-amwm">Number</th>
+        <th class="tg-amwm">Time [h]</th>
+        <th class="tg-amwm">[%]</th>
+        <th class="tg-amwm">Number</th>
+        <th class="tg-amwm">Time [h]</th>
+        <th class="tg-amwm">[%]</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="tg-0lax">Baseline</td>
+        <td class="tg-baqh"><div id="summary_baseline_total"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_total_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_awaits"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_awaits_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_awaits_hours_percent"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_started"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_started_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_started_hours_percent"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_finished"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_finished_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_finished_hours_percent"></p></td>
+      </tr>
+      <tr>
+        <td class="tg-0lax">Baseline compare</td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_total"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_total_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_awaits"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_awaits_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_awaits_hours_percent"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_started"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_started_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_started_hours_percent"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_finished"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_finished_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_finished_hours_percent"></p></td>
+      </tr>
+    </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
 <script type="text/babel" class="code-js">
 
     // var gridData = []
@@ -81,53 +153,6 @@ Click me to display Date and Time.</button>
     const url_be = 'http://192.168.5.20:7500/'
 
     const url_graphql = url + 'graphql'
-    const url_query = url + 'query'
-
-
-
-
-    // var query = `query {
-    //     queryProject (filter: {has: baselines}) {
-    //         id
-    //         name
-    //     }
-    // }`
-
-
-    // fetch(url_graphql, {
-    //     method: 'post',
-    //     headers: {
-    //         'Content-Type': 'application/json'
-    //     },
-    //     body: JSON.stringify({ query })
-    // })
-    // .then(res => res.json())
-    // .then(function (rjs) {
-
-    //     function update_selector(selector_label) {
-    //         for (var i in rjs['data']['queryProject']) {
-    //             var option = document.createElement('option')
-    //             option.value = rjs['data']['queryProject'][i]['id']
-    //             option.project_id = rjs['data']['queryProject'][i]['id']
-    //             option.text = rjs['data']['queryProject'][i]['name']
-
-    //             document.querySelector(selector_label).add(option, null)
-    //         }
-    //     }
-
-    //     // update_selector('#filter_root')
-    //     // if (rjs['data']['queryProject'].length == 1) {
-    //     //     document.querySelector('#filter_root').value = rjs['data']['queryProject'][0]['id']
-    //     // }
-    //     // console.log(document.querySelector('#filter_root').selectedOptions[0].project_id)
-
-    // })
-    // .catch(console.error);
-
-
-
-
-
 
 
 
@@ -199,7 +224,8 @@ Click me to display Date and Time.</button>
         // update_selector_baseline_id('#filter_baseline_3')
         // update_selector_baseline_id('#filter_baseline_4')
 
-        update_selector_baseline_id('#duplicate_baseline_new_select_baseline', ['none'])
+        // update_selector_baseline_id('#duplicate_baseline_new_select_baseline', ['none'])
+        update_selector_baseline_id('#duplicate_baseline_new_select_baseline')
 
         update_selector_with_labels('#baseline')
         update_selector_with_labels('#baseline_compare')
@@ -270,7 +296,6 @@ query {
 
 
     function get_filtered_projects() {
-
         var info = {
             "url": url,
             "filter": document.getElementById('filter_query').value,
@@ -295,7 +320,14 @@ query {
         .then(res => res.json())
         .then(function (rjs) {
 
-            refresh_anychart_data(rjs)
+            refresh_anychart_data(rjs['projects'])
+
+            for (var key in rjs) {
+                console.log(key)
+                if (key != "projects") {
+                    document.getElementById(key).innerHTML = rjs[key]
+                }
+            }
 
         })
         .catch(console.error);
@@ -338,7 +370,7 @@ query {
     chart.dataGrid().column(1).collapseExpandButtons(false);
     chart.dataGrid().column(1).width(60);
     chart.dataGrid().column(1).labels().useHtml(true);
-    chart.dataGrid().column(1).labels().format("<a href='{%jira_link}'>{%id}</a>");
+    chart.dataGrid().column(1).labels().format("<a href='{%link}'>{%id}</a>");
 
 
     chart.dataGrid().column(2).title().text("Name")

@@ -5,17 +5,28 @@ import json
 import rfc3339
 
 import lib.jira.jira as jira
-from lib.pmtx_client.pmtx_base import request_dql_mutate, request_gql
+from lib.pmtx_client import query_baseline
+from lib.pmtx_client.pmtx_base import request_dql_mutate, request_gql, request_dql_query
 
 
 
 
 
 
-def create_project_pb_externaltool(url: str, name: str, description = None, external_tool = {}) -> dict:
+def create_project_pb_externaltool(url: str, name: str, original_baseline_id: str, description = None, external_tool = {}, if_root = False) -> dict:
 
-    # project_description = "" # TODO: resolve issue with serialization
-    project_description = '_:project <Project.description> {0} .'.format(json.dumps(description)) if description else ""
+    serialized_description = '_:project <Project.description> {0} .'.format(json.dumps(description)) if description else ""
+
+    baseline_original = ""
+    if if_root:
+        original_baseline_id = "_:baseline_original"
+        baseline_original = """
+    _:baseline_original <Baseline.root> _:project .
+    _:baseline_original <Baseline.projects> _:project_baseline_original .
+    _:baseline_original <Baseline.name> "Jira Original" .
+    _:project <Project.baselines> _:baseline_original .
+    _:baseline_original <dgraph.type> "Baseline" .
+        """
 
     create_project = '''
 {
@@ -23,23 +34,31 @@ def create_project_pb_externaltool(url: str, name: str, description = None, exte
     _:project <dgraph.type> "Project" .
     _:project <Project.name> {name} .
     {project_description}
-    _:project <Project.projectBaselines> _:project_baseline .
-    _:project <Project.externalTool> _:exttool .
     
+    _:project <Project.projectBaselines> _:project_baseline .
     _:project_baseline <dgraph.type> "ProjectBaseline" .
     _:project_baseline <ProjectBaseline.project> _:project .
+    
+    _:project <Project.projectBaselines> _:project_baseline_original .
+    _:project_baseline_original <dgraph.type> "ProjectBaseline" .
+    _:project_baseline_original <ProjectBaseline.project> _:project .
+    _:project_baseline_original <ProjectBaseline.baseline> <{original_baseline_id}> .
 
     {ExternalTool}
+    {BaselineOriginal}
   }
 }
     '''. \
         replace("{name}", json.dumps(name)). \
-        replace("{project_description}", project_description)
+        replace("{project_description}", serialized_description). \
+        replace("{original_baseline_id}", original_baseline_id). \
+        replace("{BaselineOriginal}", baseline_original)
 
 
     exttool = ""
     if external_tool:
         exttool = """
+    _:project <Project.externalTool> _:exttool .
     _:exttool <dgraph.type> "ExternalTool" .
     _:exttool <ExternalTool.project> _:project .
     _:exttool <ExternalTool.externalID> "{externalID}" .
@@ -47,24 +66,22 @@ def create_project_pb_externaltool(url: str, name: str, description = None, exte
     _:exttool <ExternalTool.type> "{type}" .
     _:exttool <ExternalTool.url> "{url}" .
     _:exttool <ExternalTool.urlSubpath> "{urlSubpath}" .
-        """. \
-            replace("{externalID}", external_tool['externalID']). \
-            replace("{name}", external_tool['name']). \
-            replace("{type}", external_tool['type']). \
-            replace("{url}", external_tool['url']). \
-            replace("{urlSubpath}", external_tool['urlSubpath'])
+        """.format(**external_tool) # replace("{externalID}", external_tool['externalID']). \
+        #     replace("{name}", external_tool['name']). \
+        #     replace("{type}", external_tool['type']). \
+        #     replace("{url}", external_tool['url']). \
+        #     replace("{urlSubpath}", external_tool['urlSubpath'])
     
     if 'customFields' in external_tool:
         exttool = exttool + """_:exttool <ExternalTool.customFields> {0} .""".format(json.dumps(external_tool['customFields']))
         
     create_project = create_project.replace("{ExternalTool}", exttool)
-    
-    response = request_dql_mutate(url, create_project)
 
-    return {
-        "project_id": response['data']['uids']['project'], 
-        "project_baseline_id": response['data']['uids']['project_baseline']
-    }
+    # print(create_project)
+    response = request_dql_mutate(url, create_project)
+    # print(response)
+
+    return response['data']['uids']
 
 
 
@@ -131,7 +148,7 @@ def create_project_pb_externaltool(url: str, name: str, description = None, exte
 
 
 
-def sync_issues_and_projects_by_jql(url: str, jira_info: dict, jql: str):
+def sync_issues_and_projects_by_jql(url: str, jira_info: dict, jql: str, original_baseline_id: str):
 
     issues = jira.get_issues(jira_info, jql)
     parsed_issues = []
@@ -144,7 +161,7 @@ def sync_issues_and_projects_by_jql(url: str, jira_info: dict, jql: str):
                 "name": jira_info["name"],
                 "type": "Jira",
                 "url": jira_info["url"],
-                "urlSubpath": "rest/api/2/issue/" + issue["key"],
+                "urlSubpath": "browse/" + issue["key"],
                 "customFields": json.dumps({
                     "component": ",".join([i["name"] for i in issue["fields"]["components"]]),
                     "type": issue["fields"]["issuetype"]["name"],
@@ -175,7 +192,7 @@ query ($jiraIDs: [String!]! $url: String!) {
     update_project = '''
 mutation ($id: ID! $projectFields: ProjectPatch! $jiraID: String! $url: String! $externalToolFields: ExternalToolPatch) {
   updateProject (input: {
-      filter: {id: [$id]}
+      filter: { id: [$id] }
       set: $projectFields
     }) {
       numUids
@@ -202,13 +219,12 @@ mutation ($id: ID! $projectFields: ProjectPatch! $jiraID: String! $url: String! 
                 }
             )
         else:
-            # issue['baseline'] = {}
             projects_to_create.append(issue)
 
 
     for issue in projects_to_create:
-        # response = request_gql(url, create_projects, {"projects": projects_to_create})
-        create_project_pb_externaltool(url, issue['name'], issue['description'], issue['externalTool'][0])
+        # print(issue['externalTool'][0]['externalID'])
+        create_project_pb_externaltool(url, issue['name'], original_baseline_id, issue['description'], issue['externalTool'][0])
 
     return issues
 
@@ -216,22 +232,36 @@ mutation ($id: ID! $projectFields: ProjectPatch! $jiraID: String! $url: String! 
 
 
 
-## TODO: add parent when epic, task, sub-task (as higher priority compared to links)
-def sync_default_baseline(url: str, jira_info: dict, issues: dict, baseline_root_id = None): 
+
+def sync_default_and_original_baseline(url: str, jira_info: dict, issues: dict, root_project_baseline_id: str, baseline_original_id: str, project_baseline_original_id: str): 
 
     query = """
-query ($jira_ids: [String!]!) {
-  queryExternalTool (filter: {externalID: {in: $jira_ids}}) {
-    externalID
-    project {projectBaselines (filter: {not: {has: baseline}}) {id}}
+query v ($baseline_id: string) {
+  pbs  (func: type(ExternalTool)) @filter(eq(ExternalTool.externalID, {jira_ids})) @normalize {
+    externalID: ExternalTool.externalID
+    act: ExternalTool.project {
+      Project.projectBaselines @filter(not has(ProjectBaseline.baseline)) {
+        actual_id: uid
+      	}
+      }
+    ori: ExternalTool.project {
+      Project.projectBaselines @filter(uid_in(ProjectBaseline.baseline, $baseline_id)) {
+        original_id: uid
+      }
+    }
   }
 }
-    """
-    response = request_gql(url, query, {"jira_ids": [issue['key'] for issue in issues]})
-    print(response)
+    """.replace("{jira_ids}", json.dumps([issue['key'] for issue in issues]))
+    response = request_dql_query(url, query, {"$baseline_id": baseline_original_id})
+
     map_jira_pmt = {}
-    for i in response['data']['queryExternalTool']:
-        map_jira_pmt[i['externalID']] = i['project']['projectBaselines'][0]['id']
+    for i in response['data']['pbs']:
+        map_jira_pmt[i['externalID']] = {
+            'actual_id': i['actual_id'],
+            'original_id': i['original_id'],
+        }
+
+
 
     mutation = """
 mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
@@ -245,10 +275,12 @@ mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
         if issue['key'] in map_jira_pmt:
             issueCL = jira.get_issue_changelog(jira_info, issue['key'])
             pb = {}
+            pb_original = {}
 
             if issue['fields']['issuetype']['name'] == "Sub-task":
                 if issue['fields']['parent']['key'] in map_jira_pmt:
-                    pb['parent'] = {'id': map_jira_pmt[issue['fields']['parent']['key']]}
+                    pb['parent'] = {"id": map_jira_pmt[issue['fields']['parent']['key']]['actual_id']}
+                    pb['parent'] = {"id": map_jira_pmt[issue['fields']['parent']['key']]['original_id']}
                 else:
                     print("WARNING: parent not in map [current, parent]:", issue['key'], '->', issue['fields']['parent']['key'])
 
@@ -256,7 +288,8 @@ mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
             for link in issue['fields']['issuelinks']:
                 if link['type']['inward'] == 'split from' and 'inwardIssue' in link:
                     if link['inwardIssue']['key'] in map_jira_pmt:
-                        pb['parent'] = {"id": map_jira_pmt[link['inwardIssue']['key']]}
+                        pb['parent'] = {"id": map_jira_pmt[link['inwardIssue']['key']]['actual_id']}
+                        pb['parent'] = {"id": map_jira_pmt[link['inwardIssue']['key']]['original_id']}
                     else:
                         print("WARNING: parent not in map [current, parent]:", issue['key'], '->', link['inwardIssue']['key'])
                 if link['type']['inward'] == 'has to be done after' and 'inwardIssue' in link:
@@ -264,14 +297,21 @@ mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
                         if 'predecessors' not in pb: pb['predecessors'] = []
                         pb['predecessors'].append({
                             "type": "FS",
-                            "project": {"id": map_jira_pmt[link['inwardIssue']['key']]}
+                            "project": {"id": map_jira_pmt[link['inwardIssue']['key']]['actual_id']}
+                            })
+
+                        if 'predecessors' not in pb_original: pb_original['predecessors'] = []
+                        pb_original['predecessors'].append({
+                            "type": "FS",
+                            "project": {"id": map_jira_pmt[link['inwardIssue']['key']]['original_id']}
                             })
                     else:
                         print("WARNING: predecessor not in map [current, predecessor]:", issue['key'], '->', link['inwardIssue']['key'])
 
 
-            # if issue['fields']['timeoriginalestimate']:
-            #     pb['worktime'] = str(issue['fields']['timeoriginalestimate']/3600.) + 'h'
+            if issue['fields']['timeoriginalestimate']:
+                pb_original['worktime'] = str(issue['fields']['timeoriginalestimate']/3600.) + 'h'
+
             if issue['fields']['customfield_11737'] or issue['fields']['timespent']: #custom solution (for older projects)
                 if issue['fields']['customfield_11737'] and issue['fields']['timespent']:
                     pb['worktime'] = issue['fields']['customfield_11737'] if issue['fields']['customfield_11737'] > issue['fields']['timespent'] else issue['fields']['timespent']
@@ -287,69 +327,24 @@ mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
             if start: pb['start'] = rfc3339.rfc3339(start)
             if finish: pb['finish'] = rfc3339.rfc3339(finish)
 
-            if baseline_root_id is not None and 'parent' not in pb:
-                pb['parent'] = {"id": baseline_root_id}
+            if root_project_baseline_id is not None and 'parent' not in pb:
+                pb['parent'] = {"id": root_project_baseline_id}
+            if project_baseline_original_id is not None and 'parent' not in pb:
+                pb_original['parent'] = {"id": project_baseline_original_id}
 
-            if pb: 
+            if pb:
                 request_gql(url, mutation, {
-                    "project_baseline_id": map_jira_pmt[issue['key']],
+                    "project_baseline_id": map_jira_pmt[issue['key']]['actual_id'],
                     "fields": pb
                 })
 
+            if pb_original:
+                request_gql(url, mutation, {
+                    "project_baseline_id": map_jira_pmt[issue['key']]['original_id'],
+                    "fields": pb_original
+                })
+
     return
-
-
-
-
-# WARNING: needs refinement before start using, probably doesn't make any sense
-# def sync_baseline(url: str, jira_info: dict, issues: dict, baseline_id: str, fields_map: dict):
-
-#     query = """
-# query ($jira_ids: [String!]! $baseline_id: ID!) {
-#   queryExternalTool (filter: {externalID: {in: $jira_ids}}) {
-#     externalID
-#     project {baselines (filter: {id: [$baseline_id]}) {projects {id}}}
-#   }
-# }
-#     """
-#     response = request_gql(url, query, {"jira_ids": [issue['key'] for issue in issues]})
-#     map_jira_pmt = {}
-#     for i in response['data']['queryExternalTool']:
-#         map_jira_pmt[i['externalID']] = i['project']['baseline']['id']
-
-#     mutation = """
-# mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
-#   updateProjectBaseline (input: {filter: {id: [$project_baseline_id]} set: $fields}) {
-#     numUids
-#   }
-# }
-#     """
-
-#     for issue in issues:
-#         if issue['key'] in map_jira_pmt:
-#             pb = {}
-
-#             if 'parent' in fields_map:
-#                 for link in issue['fields']['issuelinks']:
-#                     if link['type']['inward'] == fields_map['parent'] and 'inwardIssue' in link:
-#                         pb['parent'] = {"id": map_jira_pmt[link['inwardIssue']['key']]}
-
-#             if 'worktime' in fields_map and issue['fields'][fields_map['worktime']]:
-#                 pb['worktime'] = str(issue['fields']['timespent']/3600) + 'h'
-
-#             # if issue['fields']['customfield_11737']: 
-#             #   pb['start'] = rfc3339.rfc3339(issue['fields']['customfield_11737'])
-#             # if issue['fields']['customfield_11737']: 
-#             #   pb['finish'] = rfc3339.rfc3339(issue['fields']['customfield_11737'])
-
-#             if pb: 
-#                 request_gql(url, mutation, {
-#                     "project_baseline_id": map_jira_pmt[issue['key']],
-#                     "fields": pb
-#                 })
-
-#     return
-
 
 
     
@@ -357,41 +352,72 @@ mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
 
 
 def import_project_from_jira(url: str, jira_info: dict, project: str) -> str:
-    issues = sync_issues_and_projects_by_jql(url, jira_info, "project=" + project)
-
-    get_already_existing_issues = '''
+    externalTool = request_gql(url, """
 query ($jiraIDs: [String!]! $url: String!) {
   queryExternalTool (filter: {and: [{externalID: {in: $jiraIDs}} {url: {eq: $url}}]}) {
-    externalID
     project { 
       id
-      projectBaselines (filter: {not: {has: baseline}}) { id }
+      projectBaselines (filter: { not: {has: baseline} }) { id }
+      baselines (filter: {name: {allofterms: "Jira Original"}}) {
+        id
+      }
     }
   }
 }
-    '''
-    response = request_gql(url, get_already_existing_issues, {"jiraIDs": [issues[0]['fields']['project']['key']], "url": jira_info['url']})
+    """, {"jiraIDs": [project], "url": jira_info['url']})['data']['queryExternalTool']
 
-    if response['data']['queryExternalTool']:
-        ids = {
-            'project_id': response['data']['queryExternalTool'][0]['project']['id'],
-            'project_baseline_id': response['data']['queryExternalTool'][0]['project']['projectBaselines'][0]['id'],
-        }
-    else:
+
+    if len(externalTool) > 1:
+        raise Exception("ERROR: duplicated ID in the system: ", externalTool)
+
+
+    if not externalTool:
         ids = create_project_pb_externaltool(
             url=url, 
-            name=issues[0]['fields']['project']['name'], 
-            external_tool = {
-                "externalID": issues[0]['fields']['project']['key'],
+            name=project, 
+            original_baseline_id="",
+            if_root=True,
+            external_tool={
+                "externalID": project,
                 "name": jira_info["name"],
                 "type": "Jira",
                 "url": jira_info["url"],
-                "urlSubpath": issues[0]['fields']['project']['self']
+                "urlSubpath": "browse/" + project
             })
+    else:
+        ids = {
+            "baseline_original": externalTool[0]['project']['baselines'][0]['id'],
+            "project": externalTool[0]['project']['id'],
+            "project_baseline": externalTool[0]['project']['projectBaselines'][0]['id'],
+            # "project_baseline_original": None
+        }
+        request_project_baseline_original = """
+query v ($project_id: string, $baseline_id: string) {
+  project_baseline_original (func: uid($baseline_id)) @normalize {
+    Baseline.projects @filter(uid_in(ProjectBaseline.project, $project_id)) {
+      id: uid
+    }
+  }
+}
+        """
+        ids['project_baseline_original'] = request_dql_query(url, request_project_baseline_original, {"$project_id": ids['project'], "$baseline_id": ids['baseline_original']})['data']['project_baseline_original']
+        if len(ids['project_baseline_original']) > 1:
+            # print("ERROR: duplicated ID in the system: ", externalTool)
+            raise Exception("ERROR: duplicated ID in the system: ", externalTool)
+        else:
+            ids['project_baseline_original'] = ids['project_baseline_original'][0]['id']
 
-    sync_default_baseline(url, jira_info, issues, ids['project_baseline_id'])
 
-    return ids['project_id']
+    issues = sync_issues_and_projects_by_jql(url, jira_info, "project=" + "pp and labels=p2_v3", ids['baseline_original']) # TODO: REMOVE
+    # issues = sync_issues_and_projects_by_jql(url, jira_info, "project=" + project, ids['baseline_original'])
+
+    # Sync base
+    sync_default_and_original_baseline(url, jira_info, issues, ids['project_baseline'], ids['baseline_original'], ids['project_baseline_original'])
+
+    # TODO: fix parent start and finish dates
+    
+
+    return ids['project']
 
 
 
@@ -409,13 +435,27 @@ if __name__ == "__main__":
         "username": "awaz@ownedoutcomes.com",
         "api_token": "6Pu9J7zSN4wBqwqgSREsAE08",
     }
-
+ 
 
     # root_id = import_project_from_jira(url, jira_info, "mc and component=FE and fixVersion=MVP")
-    root_id = import_project_from_jira(url, jira_info, "pp and labels=p2_v3")
-
+    root_id = import_project_from_jira(url, jira_info, "PP")
     print("Root project id:", root_id)
 
+
+
+    # project='tt'
+    # print(create_project_pb_externaltool(
+    #         url=url, 
+    #         name=project, 
+    #         original_baseline_id="",
+    #         if_root=True,
+    #         external_tool={
+    #             "externalID": project,
+    #             "name": jira_info["name"],
+    #             "type": "Jira",
+    #             "url": jira_info["url"],
+    #             "urlSubpath": "browse/" + project
+    #         }))
 
     # some custom solution to get original estimates
 

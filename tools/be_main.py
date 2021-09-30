@@ -36,9 +36,9 @@ class Baselines(BaseModel):
 
 @app.post("/baselines_anychart_format/")
 def get_baselines(item: Baselines):
-    from get_baselines_anychart import form_anychart_json
+    from get_baselines_anychart import form_anychart_and_summary
     input_json = jsonable_encoder(item)
-    return form_anychart_json(
+    return form_anychart_and_summary(
         input_json['url'], 
         input_json['filter'], 
         input_json['baseline'], 
