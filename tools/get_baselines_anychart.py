@@ -81,6 +81,8 @@ def form_anychart_projects(url: str, filter: str, baseline_id: str, baseline_com
 def form_anychart_and_summary(url: str, filter: str, baseline_id: str, baseline_compare_id: str) -> dict:
     pmt_x_fe = form_anychart_projects(url, filter, baseline_id, baseline_compare_id)
 
+    if len(pmt_x_fe['projects']) == 0: return pmt_x_fe
+
     df = pd.DataFrame(pmt_x_fe['projects'])
     if 'parent' in df.columns: df = df[~df.id.isin(df.parent)] # lowest level projects
 
@@ -134,6 +136,11 @@ def form_anychart_and_summary(url: str, filter: str, baseline_id: str, baseline_
             for field in extfields:
                 project[field] = extfields[field]
             del project['extFields']
+
+        if 'statusCategory' in project:
+            # if project['statusCategory'] == "To Do": project['statusColor'] = "green"
+            if project['statusCategory'] == "In Progress": project['statusColor'] = "#B3DBFF"
+            if project['statusCategory'] == "Done": project['statusColor'] = "#80FF80"
 
         if "pbID" in project: 
             pmt_x_fe['summary_baseline_total'] += 1

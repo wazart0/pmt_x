@@ -57,11 +57,13 @@ class SolverBase():
     def create_lowest_level_projects(self):
         # if self.partial_update:
         #     return self.projects[~self.projects.project_id.isin(self.projects.parent_id)][['project_id', 'worktime', 'start', 'finish']]
-
         return self.projects[~self.projects.project_id.isin(self.projects.parent_id)].copy(deep=True)
         
 
     def create_lowest_level_dependencies(self):
+        if not self.dependencies:
+            return None
+
         projects = self.projects[self.projects.parent_id.isnull()][['project_id', 'parent_id']]
         ld = self.dependencies.copy(deep=True)
 
@@ -113,9 +115,9 @@ class SolverBase():
                 return
 
             for parent_id in parents:
-                self.projects.loc[self.projects.project_id == parent_id, 'worktime'] = self.projects[self.projects.project_id == parent_id].worktime.sum()
-                self.projects.loc[self.projects.project_id == parent_id, 'start'] = self.projects[self.projects.project_id == parent_id].start.min()
-                self.projects.loc[self.projects.project_id == parent_id, 'finish'] = self.projects[self.projects.project_id == parent_id].finish.max()
+                self.projects.loc[self.projects.project_id == parent_id, 'worktime'] = self.projects[(self.projects.project_id == parent_id) & self.projects.worktime.notnull()].worktime.sum()
+                self.projects.loc[self.projects.project_id == parent_id, 'start'] = self.projects[(self.projects.project_id == parent_id) & self.projects.start.notnull()].start.min()
+                self.projects.loc[self.projects.project_id == parent_id, 'finish'] = self.projects[(self.projects.project_id == parent_id) & self.projects.finish.notnull()].finish.max()
 
 
     # def find_incorrect_dependencies_FS(self):

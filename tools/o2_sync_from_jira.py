@@ -3,10 +3,13 @@ import requests
 import pickle
 import json
 import rfc3339
+import pandas as pd
 
 import lib.jira.jira as jira
 from lib.pmtx_client import query_baseline
 from lib.pmtx_client.pmtx_base import request_dql_mutate, request_gql, request_dql_query
+
+from lib.task_assignee_estimators.solver_base import SolverBase
 
 
 
@@ -280,7 +283,7 @@ mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
             if issue['fields']['issuetype']['name'] == "Sub-task":
                 if issue['fields']['parent']['key'] in map_jira_pmt:
                     pb['parent'] = {"id": map_jira_pmt[issue['fields']['parent']['key']]['actual_id']}
-                    pb['parent'] = {"id": map_jira_pmt[issue['fields']['parent']['key']]['original_id']}
+                    pb_original['parent'] = {"id": map_jira_pmt[issue['fields']['parent']['key']]['original_id']}
                 else:
                     print("WARNING: parent not in map [current, parent]:", issue['key'], '->', issue['fields']['parent']['key'])
 
@@ -289,7 +292,7 @@ mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
                 if link['type']['inward'] == 'split from' and 'inwardIssue' in link:
                     if link['inwardIssue']['key'] in map_jira_pmt:
                         pb['parent'] = {"id": map_jira_pmt[link['inwardIssue']['key']]['actual_id']}
-                        pb['parent'] = {"id": map_jira_pmt[link['inwardIssue']['key']]['original_id']}
+                        pb_original['parent'] = {"id": map_jira_pmt[link['inwardIssue']['key']]['original_id']}
                     else:
                         print("WARNING: parent not in map [current, parent]:", issue['key'], '->', link['inwardIssue']['key'])
                 if link['type']['inward'] == 'has to be done after' and 'inwardIssue' in link:
@@ -329,7 +332,7 @@ mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
 
             if root_project_baseline_id is not None and 'parent' not in pb:
                 pb['parent'] = {"id": root_project_baseline_id}
-            if project_baseline_original_id is not None and 'parent' not in pb:
+            if project_baseline_original_id is not None and 'parent' not in pb_original:
                 pb_original['parent'] = {"id": project_baseline_original_id}
 
             if pb:
@@ -347,7 +350,7 @@ mutation ($project_baseline_id: ID!, $fields: ProjectBaselinePatch!) {
     return
 
 
-    
+
 
 
 
@@ -408,13 +411,38 @@ query v ($project_id: string, $baseline_id: string) {
             ids['project_baseline_original'] = ids['project_baseline_original'][0]['id']
 
 
-    issues = sync_issues_and_projects_by_jql(url, jira_info, "project=" + "pp and labels=p2_v3", ids['baseline_original']) # TODO: REMOVE
-    # issues = sync_issues_and_projects_by_jql(url, jira_info, "project=" + project, ids['baseline_original'])
+    # # issues = sync_issues_and_projects_by_jql(url, jira_info, "project=" + "pp and labels=p2_v3", ids['baseline_original']) # TODO: REMOVE
+    # issues = sync_issues_and_projects_by_jql(url, jira_info, "project=" + "mc and type=task and component=be and fixVersion=1", ids['baseline_original']) # TODO: REMOVE
+    # # issues = sync_issues_and_projects_by_jql(url, jira_info, "project=" + project, ids['baseline_original'])
 
-    # Sync base
-    sync_default_and_original_baseline(url, jira_info, issues, ids['project_baseline'], ids['baseline_original'], ids['project_baseline_original'])
+    # # Sync base
+    # sync_default_and_original_baseline(url, jira_info, issues, ids['project_baseline'], ids['baseline_original'], ids['project_baseline_original'])
+
 
     # TODO: fix parent start and finish dates
+    query = """
+query v ($root_id: string) {
+  var (func: uid($root_id)) @recurse(loop: false) {
+    ID as uid
+    ProjectBaseline.children
+  }
+  
+  projects (func: uid(ID)) @normalize {
+    project_id: uid
+    ProjectBaseline.parent { parent_id: uid }
+    worktime: ProjectBaseline.worktime
+    start: ProjectBaseline.start
+    finish: ProjectBaseline.finish
+  }
+}
+    """
+    pbs = request_dql_query(url, query, {"$root_id": "[{0},{1}]".format(ids['project_baseline'], ids['project_baseline_original'])})
+
+    solver = SolverBase(pd.DataFrame(pbs['data']['projects']))
+    print(solver.projects[solver.projects.finish.notnull()])
+    solver.update_projects(from_lp=False)
+    print(solver.projects[solver.projects.finish.notnull()])
+    
     
 
     return ids['project']

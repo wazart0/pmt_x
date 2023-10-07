@@ -72,9 +72,9 @@
 <style type="text/css">
     .tg  {border-collapse:collapse;border-spacing:0;}
     .tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-      overflow:hidden;padding:10px 5px;word-break:normal;}
+      overflow:hidden;padding:1px 10px;word-break:normal;}
     .tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-      font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+      font-weight:normal;overflow:hidden;padding:1px 10px;word-break:normal;}
     .tg .tg-baqh{text-align:center;vertical-align:top}
     .tg .tg-wa1i{font-weight:bold;text-align:center;vertical-align:middle}
     .tg .tg-amwm{font-weight:bold;text-align:center;vertical-align:top}
@@ -104,6 +104,20 @@
       </tr>
     </thead>
     <tbody>
+        <!-- <tr>
+            <td class="tg-0lax">Time reported</td>
+            <td class="tg-baqh"><div id="summary_timeRepored_total"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_total_hours"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_awaits"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_awaits_hours"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_awaits_hours_percent"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_started"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_started_hours"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_started_hours_percent"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_finished"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_finished_hours"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_finished_hours_percent"></p></td>
+        </tr> -->
       <tr>
         <td class="tg-0lax">Baseline</td>
         <td class="tg-baqh"><div id="summary_baseline_total"></p></td>
@@ -377,15 +391,21 @@ query {
     chart.dataGrid().column(2).labels().format("{%name}");
     chart.dataGrid().column(2).width(400);
 
-    chart.dataGrid().column(3).title().text("Actual worktime")
-    chart.dataGrid().column(3).labels().format("{%actualWorktime}");
-    chart.dataGrid().column(3).width(40);
+    chart.dataGrid().column(3).title().text("Status (ext tool)")
+    chart.dataGrid().column(3).labels().useHtml(true);
+    // chart.dataGrid().column(3).labels().format("{%status}");
+    chart.dataGrid().column(3).labels().format('<div style="background:{%statusColor}">{%status}</div>');
+    chart.dataGrid().column(3).width(80);
 
-    chart.dataGrid().column(4).title().text("Compare worktime")
-    chart.dataGrid().column(4).labels().format("{%baselineWorktime}");
+    chart.dataGrid().column(4).title().text("Actual worktime")
+    chart.dataGrid().column(4).labels().format("{%actualWorktime}");
     chart.dataGrid().column(4).width(40);
 
-    chart.splitterPosition("567px");
+    chart.dataGrid().column(5).title().text("Compare worktime")
+    chart.dataGrid().column(5).labels().format("{%baselineWorktime}");
+    chart.dataGrid().column(5).width(40);
+
+    chart.splitterPosition("647px");
 
     // chart.getTimeline().tooltip().format(
     //     "Start: {%actual_development_time_start}\nFinish: {%actual_development_time_finish}"
@@ -476,20 +496,17 @@ query {
         var data = {
             "url": url,
             "root_project_id": document.querySelector('#duplicate_baseline_select_root').selectedOptions[0].project_id,
-            "name": document.getElementById('duplicate_baseline_new_baseline_name').value
+            "name": document.getElementById('duplicate_baseline_new_baseline_name').value,
+            "source_baseline_id": ""
         }
         if (document.querySelector('#duplicate_baseline_new_select_baseline').selectedOptions[0].baseline_id) {
             data['source_baseline_id'] = document.querySelector('#duplicate_baseline_new_select_baseline').selectedOptions[0].baseline_id
-        }
-        else {
-            data['source_baseline_id'] = ""
         }
         
         fetch(url_be + "duplicate/", {
             method: 'post',
             headers: {
-                'Content-Type': 'application/json',
-                'Origin': 'lol'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(data)
         })
@@ -504,7 +521,7 @@ query {
 
 
 
-<div style="height: 700px;" id="container"></div>
+<div style="height: 750px;" id="container"></div>
 
 </body>
 </html> 
