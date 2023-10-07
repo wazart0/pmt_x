@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="https://cdn.anychart.com/releases/v8/js/anychart-base.min.js"></script>
+    <script src="https://cdn.anychart.com/releases/v8/js/anychart-ui.min.js"></script>
+    <script src="https://cdn.anychart.com/releases/v8/js/anychart-exports.min.js"></script>
+    <script src="https://cdn.anychart.com/releases/v8/js/anychart-gantt.min.js"></script>
+    <script src="https://cdn.anychart.com/releases/v8/js/anychart-data-adapter.min.js"></script>
+    <script src="https://cdn.anychart.com/releases/v8/themes/light_blue.min.js"></script>
+    <link href="https://cdn.anychart.com/releases/v8/css/anychart-ui.min.css" type="text/css" rel="stylesheet">
+    <link href="https://cdn.anychart.com/releases/v8/fonts/css/anychart-font.min.css" type="text/css" rel="stylesheet">
+    <style type="text/css">
+  
+      html,
+      body,
+      #container {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    
+    </style>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/jsframe.js/lib/jsframe.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+
+
+</head>
+<body>
+
+
+<a href="gantt_v0.4.html">Gantt</a> <a href="resources.html">Resources</a> 
+
+<br>
+
+<label for="filter_query"><b>Filter query (currently filter by project name works): </b></label>
+<input id="filter_query" type="text" maxlength="512" class="searchField" onchange='get_filtered_projects();'/>
+
+<br>
+
+<label for="baseline">Select baseline:</label>
+<select id="baseline" onchange='get_filtered_projects();'><option value=""></option></select>
+
+<button id="collapseAllButton" onclick="collapseAll()">Collapse All</button>
+<button id="expandAllButton" onclick="expandAll()">Expand All</button>
+
+<label for="baseline_compare">Select baseline compare:</label>
+<select id="baseline_compare" onchange='get_filtered_projects();'><option value=""></option></select>
+
+
+<!-- <br><b>Import to baseline: </b> -->
+
+
+
+<br><b>Duplicate baseline: </b>
+<button id="create_baseline_button" onclick="create_baseline_window()">Create baseline</button>
+<input id="duplicate_baseline_new_baseline_name" type="text" maxlength="512" placeholder="New baseline name"/>
+<label for="duplicate_baseline_new_select_baseline">From baseline</label><select id="duplicate_baseline_new_select_baseline"><option value=""></option></select>
+<label for="duplicate_baseline_select_root"> if None select root</label><select id="duplicate_baseline_select_root"><option value=""></option></select>
+<button id="duplicate_baseline_create_baseline" onclick="create_baseline()">Create</button>
+
+
+
+<br><b>Baseline merger: </b>
+
+<button id="merge_baselines" onclick="baselineMerge()">Combine selected baselines</button>
+
+
+<br><b>Project allocators: </b>
+<label for="auto_assign">Auto assign (double click)</label>
+<input type="checkbox" id="auto_assign">
+
+
+
+
+
+
+
+<style type="text/css">
+    .tg  {border-collapse:collapse;border-spacing:0;}
+    .tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+      overflow:hidden;padding:1px 10px;word-break:normal;}
+    .tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+      font-weight:normal;overflow:hidden;padding:1px 10px;word-break:normal;}
+    .tg .tg-baqh{text-align:center;vertical-align:top}
+    .tg .tg-wa1i{font-weight:bold;text-align:center;vertical-align:middle}
+    .tg .tg-amwm{font-weight:bold;text-align:center;vertical-align:top}
+    .tg .tg-0lax{text-align:left;vertical-align:top}
+    </style>
+    <table class="tg">
+    <thead>
+      <tr>
+        <th class="tg-wa1i" rowspan="2">Projects summary</th>
+        <th class="tg-amwm" colspan="2">Total</th>
+        <th class="tg-amwm" colspan="3">Awaits (backlog)</th>
+        <th class="tg-amwm" colspan="3">Started</th>
+        <th class="tg-amwm" colspan="3">Finished</th>
+      </tr>
+      <tr>
+        <th class="tg-amwm">Number</th>
+        <th class="tg-amwm">Time [h]</th>
+        <th class="tg-amwm">Number</th>
+        <th class="tg-amwm">Time [h]</th>
+        <th class="tg-amwm">[%]</th>
+        <th class="tg-amwm">Number</th>
+        <th class="tg-amwm">Time [h]</th>
+        <th class="tg-amwm">[%]</th>
+        <th class="tg-amwm">Number</th>
+        <th class="tg-amwm">Time [h]</th>
+        <th class="tg-amwm">[%]</th>
+      </tr>
+    </thead>
+    <tbody>
+        <!-- <tr>
+            <td class="tg-0lax">Time reported</td>
+            <td class="tg-baqh"><div id="summary_timeRepored_total"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_total_hours"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_awaits"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_awaits_hours"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_awaits_hours_percent"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_started"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_started_hours"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_started_hours_percent"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_finished"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_finished_hours"></p></td>
+            <td class="tg-baqh"><div id="summary_timeRepored_finished_hours_percent"></p></td>
+        </tr> -->
+      <tr>
+        <td class="tg-0lax">Baseline</td>
+        <td class="tg-baqh"><div id="summary_baseline_total"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_total_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_awaits"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_awaits_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_awaits_hours_percent"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_started"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_started_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_started_hours_percent"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_finished"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_finished_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_finished_hours_percent"></p></td>
+      </tr>
+      <tr>
+        <td class="tg-0lax">Baseline compare</td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_total"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_total_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_awaits"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_awaits_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_awaits_hours_percent"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_started"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_started_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_started_hours_percent"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_finished"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_finished_hours"></p></td>
+        <td class="tg-baqh"><div id="summary_baseline_cmp_finished_hours_percent"></p></td>
+      </tr>
+    </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+    <script>
+
+        anychart.onDocumentReady(function () {
+        // set chart theme
+        anychart.theme('lightBlue');
+          // The data used in this sample can be obtained from the CDN
+          // https://cdn.anychart.com/samples/gantt-live-editing/project-chart-editing/data.json
+          anychart.data.loadJsonFile(
+            'https://cdn.anychart.com/samples/gantt-live-editing/project-chart-editing/data.json',
+            function (data) {
+              // create data tree on raw data
+              var treeData = anychart.data.tree(data, 'as-table');
+    
+              // create project gantt chart
+              var chart = anychart.ganttProject();
+    
+              // set data for the chart
+              chart.data(treeData);
+    
+              // set pixel position of the main splitter
+              chart.splitterPosition(220);
+    
+              // make chart editable
+              chart.edit(true);
+    
+              // set container id for the chart
+              chart.container('container');
+    
+              // initiate chart drawing
+              chart.draw();
+    
+              // zoom chart all dates range
+              chart.fitAll();
+            }
+          );
+        });
+      
+    </script>
+
+
+
+<div style="height: 750px;" id="container"></div>
+
+</body>
+</html> 
