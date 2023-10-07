@@ -1,17 +1,50 @@
-from flask import *
+from dash import Dash, dash_table, dcc, html, Input, Output, callback
 import pandas as pd
 
+app = Dash(__name__)
 
-app = Flask(__name__)
+params = [
+    'Weight', 'Torque', 'Width', 'Height',
+    'Efficiency', 'Power', 'Displacement'
+]
 
-@app.route("/")
-def show_tables():
-    data = pd.read_csv('dummy_data.csv')
-    # data.set_index(['Name'], inplace=True)
-    # data.index.name=None
-    # females = data.loc[data.Gender=='f']
-    # males = data.loc[data.Gender=='m']
-    return render_template('view.html',tables=data)
+app.layout = html.Div([
+    dash_table.DataTable(
+        id='table-editing-simple',
+        columns=(
+            [{'id': 'Model', 'name': 'Model'}] +
+            [{'id': p, 'name': p} for p in params]
+        ),
+        data=[
+            dict(Model=i, **{param: 0 for param in params})
+            for i in range(1, 5)
+        ],
+        editable=True
+    ),
+    dcc.Graph(id='table-editing-simple-output')
+])
 
-if __name__ == "__main__":
-    app.run()
+
+@callback(
+    Output('table-editing-simple-output', 'figure'),
+    Input('table-editing-simple', 'data'),
+    Input('table-editing-simple', 'columns'))
+def display_output(rows, columns):
+    df = pd.DataFrame(rows, columns=[c['name'] for c in columns])
+    return {
+        'data': [{
+            'type': 'parcoords',
+            'dimensions': [{
+                'label': col['name'],
+                'values': df[col['id']]
+            } for col in columns]
+        }]
+    }
+
+
+
+
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
+

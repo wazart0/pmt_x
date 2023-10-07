@@ -6,7 +6,10 @@ services:
     image: pmt_x_fe
     build: .
 
-    command: flask run --host=0.0.0.0 --debug
+    command: python app.py
+
+    environment:
+      - FLASK_DEBUG=1
 
     ports:
       - 5000:5000
