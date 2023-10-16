@@ -5,7 +5,8 @@ WORKDIR /app
 
 RUN apk add --no-cache npm
 
-RUN npm install -g nodemon
+RUN npm install -g nodemon 
+RUN npm install gantt --save
 
 
 

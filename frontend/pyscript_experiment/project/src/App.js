@@ -1,5 +1,5 @@
-import React, { Fragment } from "react";
-
+import React from "react";
+import ProjectTable from "./components/ProjectTable";
 
 const columns = {
     'id': 'ID',
@@ -97,73 +97,15 @@ const data = [
     }
 ]
 
-// function create_table(data) {
-//     var body = document.getElementsByTagName('body')[0];
-//     var tbl = document.createElement('table');
-//     tbl.style.width = '100%';
-//     tbl.setAttribute('border', '1');
-//     var tbdy = document.createElement('tbody');
-//     for (var i = 0; i < 3; i++) {
-//       var tr = document.createElement('tr');
-//       for (var j = 0; j < 2; j++) {
-//         if (i == 2 && j == 1) {
-//           break
-//         } else {
-//           var td = document.createElement('td');
-//           td.appendChild(document.createTextNode('\u0020'))
-//           i == 1 && j == 1 ? td.setAttribute('rowSpan', '2') : null;
-//           tr.appendChild(td)
-//         }
-//       }
-//       tbdy.appendChild(tr);
-//     }
-//     tbl.appendChild(tbdy);
-//     body.appendChild(tbl)
-// }
+
+
+
 
 function App() {
-    let headers_names = Object.values(columns);
+    
     return (
-        <div className="table">
-            <table>
-                <thead>
-                    <tr>
-                        {
-                            headers_names.map(header => {
-                                return <th>{header}</th>
-                            })
-                        }
-                    </tr>
-                </thead>
-                <tbody>
-
-                    {data.map((project) => {
-                        let number_of_baselines = project.baselines.length + 1;
-                        return (
-                            <Fragment>
-                                <tr>
-                                    <td rowSpan={number_of_baselines}>{project.id}</td>
-                                    <td rowSpan={number_of_baselines}>{(project.baselines && project.baselines.length) ? project.baselines[0].wbs : ""}</td>
-                                    <td rowSpan={number_of_baselines}>{project.name}</td>
-                                    <td rowSpan={number_of_baselines}>{project.description}</td>
-                                </tr>
-                                {project.baselines.map(baseline => (
-                                    <tr>
-                                        <td>{baseline.worktime}</td>
-                                        <td>{baseline.start}</td>
-                                        <td>{baseline.finish}</td>
-                                        <td>{baseline.parent}</td>
-                                        <td>{(baseline.predecessors) ? JSON.stringify(baseline.predecessors) : ""}</td>
-                                    </tr>
-                                ))}
-                            </Fragment>
-                        );
-                    })}
-
-
-
-                </tbody>
-            </table>
+        <div className="mainContainer">
+            <ProjectTable data={data} columns={columns}/>
         </div>
     );
 }
