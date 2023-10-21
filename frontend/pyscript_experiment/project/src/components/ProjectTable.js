@@ -120,8 +120,16 @@ function ProjectTable(props) {
         updateState({});
     }
 
-    // function updateValueFromCell(id) {
-    //     console.log("Update " + String(id) + " " + data[id].name + " ");
+    function updateValueFromCell(e, id, field) {
+        if (data[id][field] !== e.target.textContent) {
+            data[id][field] = e.target.textContent;
+            console.log("TODO: Implement data update in DB.");
+        }
+        console.log("Update " + String(id) + " " + data[id].name + " ");
+    }
+
+    // function generateColumns(column_key) {
+
     // }
 
     return (
@@ -143,8 +151,8 @@ function ProjectTable(props) {
                                 <tr key={project.id}>
                                     <td rowSpan={number_of_baselines}>{project.id}</td>
                                     <td rowSpan={number_of_baselines}>{project.wbs} {project.hasChildren ? project.hiddenChildren ? <button onClick={() => showChildren(project.id)}>[+]</button> : <button onClick={() => hideChildren(project.id)}>[-]</button> : null}</td>
-                                    <td rowSpan={number_of_baselines} style={{paddingLeft: incTabs(project.wbs) + 'px'}}>{project.name}</td>
-                                    {/* <td rowSpan={number_of_baselines} style={{paddingLeft: incTabs(project.wbs) + 'px'}}><div contentEditable='true' onKeyDown={() => updateValueFromCell(project.id)}>{project.name}</div></td> */}
+                                    {/* <td rowSpan={number_of_baselines} style={{paddingLeft: incTabs(project.wbs) + 'px'}}>{project.name}</td> */}
+                                    <td rowSpan={number_of_baselines} style={{paddingLeft: incTabs(project.wbs) + 'px'}}><div suppressContentEditableWarning='true' contentEditable='true' onBlur={(e) => updateValueFromCell(e, project.id, "name")}>{project.name}</div></td>
                                     <td rowSpan={number_of_baselines}>{project.description}</td>
 
                                     <td style={{textAlign: 'center'}}>{project.worktime}</td>
