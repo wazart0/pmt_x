@@ -100,7 +100,6 @@ const data = [
 
 
 
-
 function App() {
     
     return (
