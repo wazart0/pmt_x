@@ -5,10 +5,11 @@ export var columns = {};
 export var data = [];
 
 
-export function emptyRow() {
-    return {
-        'id': data.length,
-        'name': null,
+export function addProject(name) {
+    let id = data.length;
+    data.push({
+        'id': id,
+        'name': name,
         'description': null,
         'baselines': [],
 
@@ -19,7 +20,8 @@ export function emptyRow() {
         'parent': null,
 
         'hidden': false
-    };
+    });
+    return id;
 }
 
 export function setColumns(columns_dict) {
@@ -28,7 +30,6 @@ export function setColumns(columns_dict) {
 
 export function setData(data_array) {
     data = structuredClone(data_array);
-    data.push(emptyRow());
 }
 
 export function initColumnsAndData(columns_dict, data_array) {

@@ -1,7 +1,7 @@
 import React from "react";
 import { Fragment, useState } from "react";
-import { columns, data, emptyRow } from "./ProjectVars";
-import { hideSubTree, showSubTree } from "./ProjectListTreeManager";
+import { columns, data, addProject } from "./ProjectVars";
+import { hideSubTree, showSubTree, changeParent } from "./ProjectListTreeManager";
 
 
 
@@ -28,40 +28,59 @@ function ProjectList() {
         updateProjectListState({});
     }
 
-    function updateValueFromCell(e, id, field) {
-        // if (!data[id].name && field !== 'name') { e.target.textContent = null; return; }
+    function updateValueFromCell(e, id, column) {
         e.target.textContent = e.target.textContent.trim();
-        if (!e.target.textContent && data[id][field]) { e.target.textContent = data[id][field]; return; }; // reset value in cell
-        if (!e.target.textContent || e.target.textContent === data[id][field]) return;
-        data[id][field] = e.target.textContent;
-        console.log("TODO: Implement data update in DB.");
-        if (id+1 === data.length) {
-            data.push(emptyRow());
-            updateProjectListState({});
+        if (!e.target.textContent || e.target.textContent === String(data[id][column])) return;
+        console.log(column);
+        if (column === 'parent') { 
+            let tmp = Number(e.target.textContent)
+            if (!changeParent(id, tmp)) { 
+                e.target.textContent = String(data[id][column]); 
+                return; 
+            }
+        } else {
+            data[id][column] = e.target.textContent;
         }
-        console.log("Updated task: [" + String(id) + "] column: [" + field + "] to: [" + data[id][field]+ "] ");
+        console.log("TODO: Implement data update in DB.");
+        console.log("Updated task: [" + String(id) + "] column: [" + column + "] to: [" + data[id][column]+ "] ");
+        updateProjectListState({});
+    }
+
+    function addNewProject(e) {
+        if (!e.target.textContent.trim()) return;
+        let id = addProject(e.target.textContent.trim()); 
+        e.target.textContent = ''; //                                      TODO:         why is it needed!?
+        console.log("TODO: Implement data update in DB.");
+        console.log("Created task: [" + String(id) + "] to: [" + data[id].name+ "] ");
+        updateProjectListState({});
+    }
+
+    function divEditable(id, column, value) {
+        return <div suppressContentEditableWarning='true' contentEditable='true' onBlur={(e) => updateValueFromCell(e, id, column)}>{value}</div>;
     }
 
     function td(project, number_of_baselines, column) {
-
-        function divEditable(id, column, value) {
-            return <div suppressContentEditableWarning='true' contentEditable='true' onBlur={(e) => updateValueFromCell(e, id, column)}>{value}</div>;
-        }
-
         if (column === 'id') return <td rowSpan={number_of_baselines}>{project.id}</td>;
         if (column === 'wbs') return <td rowSpan={number_of_baselines}>{project.wbs} {project.hasChildren ? project.hiddenChildren ? <button onClick={() => showChildren(project.id)}>[+]</button> : <button onClick={() => hideChildren(project.id)}>[-]</button> : null}</td>;
         if (column === 'name') return <td rowSpan={number_of_baselines} style={{paddingLeft: incTabs(project.wbs) + 'px'}}>{divEditable(project.id, column, project[column])}</td>;
-        if (column === 'description') return <td rowSpan={number_of_baselines}>{project.name ? divEditable(project.id, column, project[column]) : null}</td>;
+        if (column === 'description') return <td rowSpan={number_of_baselines}>{divEditable(project.id, column, project[column])}</td>;
 
-        if (column === 'worktime') return <td style={{textAlign: 'center'}}>{project.name ? divEditable(project.id, column, project[column]) : null}</td>;
-        if (column === 'parent') return <td style={{textAlign: 'center'}}>{project.name ? divEditable(project.id, column, project[column]) : null}</td>;
-        if (column === 'predecessors') return <td>{project.name ? divEditable(project.id, column, project.predecessors ? project.predecessors instanceof String ? project.predecessors : JSON.stringify(project.predecessors) : null) : null}</td>;
+        if (column === 'worktime') return <td style={{textAlign: 'center'}}>{divEditable(project.id, column, project[column])}</td>;
+        if (column === 'parent') return <td style={{textAlign: 'center'}}>{divEditable(project.id, column, project[column])}</td>;
+        if (column === 'predecessors') return <td>{divEditable(project.id, column, project.predecessors ? project.predecessors instanceof String ? project.predecessors : JSON.stringify(project.predecessors) : null)}</td>;
         if (column === 'start') return <td style={{textAlign: 'center'}}>{project.start}</td>;
         if (column === 'finish') return <td style={{textAlign: 'center'}}>{project.finish}</td>;
         return (null);
     }
 
+    function tdLast(column) {
+        if (column === 'id') return <td>{data.length}</td>;
+        if (column === 'name') return <td><div suppressContentEditableWarning='true' contentEditable='true' onBlur={addNewProject}>{null}</div></td>;
+        return <td></td>;
+    }
+
     function tdBaseline(baseline, column) {
+        // TODO: check how to retrieve styles and adjust the original one
         if (column === 'worktime') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.worktime}</td>;
         if (column === 'parent') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.parent}</td>;
         if (column === 'predecessors') return <td style={{borderTop: '1px solid black'}}>{baseline.predecessors ? JSON.stringify(baseline.predecessors) : null}</td>;
@@ -101,6 +120,11 @@ function ProjectList() {
                             </Fragment>
                         );
                     })}
+                    <tr>
+                        {Object.keys(columns).map(column => (
+                            tdLast(column)
+                        ))}
+                    </tr>
                 </tbody>
             </table>
         </div>
