@@ -126,11 +126,13 @@ export function changeParent(id, parent_id) {
     data[id].parent = parent_id
     if (parent_id !== null) data[parent_id]["hasChildren"] = true
 
-    data[parent_id_old]["hasChildren"] = false
-    for (let index in data) {
-        if (data[index].parent === parent_id_old) {
-            data[parent_id_old]["hasChildren"] = true
-            break;
+    if (parent_id_old) {
+        data[parent_id_old]["hasChildren"] = false
+        for (let index in data) {
+            if (data[index].parent === parent_id_old) {
+                data[parent_id_old]["hasChildren"] = true
+                break;
+            }
         }
     }
 
