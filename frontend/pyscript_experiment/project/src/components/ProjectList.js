@@ -1,6 +1,6 @@
 import React from "react";
 import { Fragment, useState } from "react";
-import { columns, data, addProject } from "./ProjectVars";
+import { columns, data, addProject, sortByWBS, resetIDs } from "./ProjectVars";
 import { hideSubTree, showSubTree, changeParent } from "./ProjectListTreeManager";
 
 
@@ -30,27 +30,41 @@ function ProjectList() {
 
     function updateValueFromCell(e, id, column) {
         e.target.textContent = e.target.textContent.trim();
-        if (!e.target.textContent || e.target.textContent === String(data[id][column])) return;
-        console.log(column);
-        if (column === 'parent') { 
-            let result = changeParent(id, Number(e.target.textContent))
+        if (e.target.textContent === String(data[id][column])) return
+        if (column === 'name' && !e.target.textContent) { e.target.textContent = data[id][column]; return; }
+        if (column === 'parent') {
+            let result = changeParent(id, e.target.textContent !== '' ? Number(e.target.textContent) : null)
             e.target.textContent = data[id][column];
             if (!result) return  
         } else {
             data[id][column] = e.target.textContent;
+            console.log("Updated task: [" + String(id) + "] column: [" + column + "] to: [" + data[id][column]+ "] ");
         }
         console.log("TODO: Implement data update in DB.");
-        console.log("Updated task: [" + String(id) + "] column: [" + column + "] to: [" + data[id][column]+ "] ");
         updateProjectListState({});
     }
 
     function addNewProject(e) {
-        if (!e.target.textContent.trim()) return;
-        let id = addProject(e.target.textContent.trim()); 
-        e.target.textContent = '';                                     //                                      TODO:         why is it needed!?
-        console.log("TODO: Implement data update in DB.");
-        console.log("Created task: [" + String(id) + "] to: [" + data[id].name+ "] ");
-        updateProjectListState({});
+        if (!e.target.textContent.trim()) return
+        let id = addProject(e.target.textContent.trim())
+        e.target.textContent = ''                                     //                                      TODO:         why is it needed!?
+        console.log("TODO: Implement data update in DB.")
+        console.log("Created task: [" + String(id) + "] to: [" + data[id].name+ "] ")
+        updateProjectListState({})
+    }
+
+    function addToBaseline(id) {
+        let no_of_new_siblings = 1
+        for (let index in data) {
+            if (data[index].parent === null && data[index].wbs) {
+                no_of_new_siblings = no_of_new_siblings + 1
+            }
+        }
+        data[id].wbs = String(no_of_new_siblings)
+        sortByWBS()
+        resetIDs()
+        console.log("TODO: Implement data update in DB.")
+        updateProjectListState({})
     }
 
     function divEditable(id, column, value) {
@@ -59,7 +73,7 @@ function ProjectList() {
 
     function td(project, number_of_baselines, column) {
         if (column === 'id') return <td rowSpan={number_of_baselines}>{project.id}</td>;
-        if (column === 'wbs') return <td rowSpan={number_of_baselines}>{project.wbs} {project.hasChildren ? project.hiddenChildren ? <button onClick={() => showChildren(project.id)}>[+]</button> : <button onClick={() => hideChildren(project.id)}>[-]</button> : null}</td>;
+        if (column === 'wbs') return <td rowSpan={number_of_baselines}>{project.wbs ? project.wbs : <button onClick={() => addToBaseline(project.id)}>ADD</button>} {project.hasChildren ? project.hiddenChildren ? <button onClick={() => showChildren(project.id)}>[+]</button> : <button onClick={() => hideChildren(project.id)}>[-]</button> : null}</td>;
         if (column === 'name') return <td rowSpan={number_of_baselines} style={{paddingLeft: incTabs(project.wbs) + 'px'}}>{divEditable(project.id, column, project[column])}</td>;
         if (column === 'description') return <td rowSpan={number_of_baselines}>{divEditable(project.id, column, project[column])}</td>;
 

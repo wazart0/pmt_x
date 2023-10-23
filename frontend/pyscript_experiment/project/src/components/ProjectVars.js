@@ -49,16 +49,11 @@ export function overwriteNullWBS() {
 
 export function sortByWBS() {
     function compare(a, b) {
-        if (a.wbs === null || b.wbs === null) {
-            return -1
-        }
-        if (a.wbs < b.wbs){
-            return -1
-        }
-        if (a.wbs > b.wbs){
-            return 1
-        }
-        return 0
+        if (a.wbs === b.wbs) return 0
+        if (a.wbs === null) return 1
+        if (b.wbs === null) return -1
+        if (a.wbs < b.wbs) return -1
+        if (a.wbs > b.wbs) return 1
     }
     data.sort(compare);
 }
