@@ -33,11 +33,9 @@ function ProjectList() {
         if (!e.target.textContent || e.target.textContent === String(data[id][column])) return;
         console.log(column);
         if (column === 'parent') { 
-            let tmp = Number(e.target.textContent)
-            if (!changeParent(id, tmp)) { 
-                e.target.textContent = String(data[id][column]); 
-                return; 
-            }
+            let result = changeParent(id, Number(e.target.textContent))
+            e.target.textContent = data[id][column];
+            if (!result) return  
         } else {
             data[id][column] = e.target.textContent;
         }
@@ -49,7 +47,7 @@ function ProjectList() {
     function addNewProject(e) {
         if (!e.target.textContent.trim()) return;
         let id = addProject(e.target.textContent.trim()); 
-        e.target.textContent = ''; //                                      TODO:         why is it needed!?
+        e.target.textContent = '';                                     //                                      TODO:         why is it needed!?
         console.log("TODO: Implement data update in DB.");
         console.log("Created task: [" + String(id) + "] to: [" + data[id].name+ "] ");
         updateProjectListState({});
@@ -88,6 +86,7 @@ function ProjectList() {
         if (column === 'finish') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.finish}</td>;
         return (null);
     }
+    
 
     return (
         <div className="projectTable">
