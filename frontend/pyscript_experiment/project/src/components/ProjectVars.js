@@ -19,7 +19,9 @@ export function addProject(name) {
         'finish': null,
         'parent': null,
 
-        'hidden': false
+        'hidden': false,
+        'hasChildren': false,
+        'hiddenChildren': false
     });
     return id;
 }
@@ -54,6 +56,7 @@ export function sortByWBS() {
         if (b.wbs === null) return -1
         if (a.wbs < b.wbs) return -1
         if (a.wbs > b.wbs) return 1
+        return 0
     }
     data.sort(compare);
 }

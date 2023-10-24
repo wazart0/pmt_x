@@ -94,7 +94,9 @@ export const data = [
             }
         ],
         
-        'hidden': false
+        'hidden': false,
+        'hasChildren': false,
+        'hiddenChildren': false
     },
     {
         'id': 2,
@@ -117,7 +119,9 @@ export const data = [
             }
         ],
 
-        'hidden': false
+        'hidden': false,
+        'hasChildren': false,
+        'hiddenChildren': false
     },
     {
         'id': 3,
@@ -132,7 +136,9 @@ export const data = [
 
         'baselines': [],
 
-        'hidden': false
+        'hidden': false,
+        'hasChildren': false,
+        'hiddenChildren': false
     },
     {
         'id': 4,
@@ -146,6 +152,8 @@ export const data = [
         'finish': null,
         'parent': null,
 
-        'hidden': false
+        'hidden': false,
+        'hasChildren': false,
+        'hiddenChildren': false
     }
 ];

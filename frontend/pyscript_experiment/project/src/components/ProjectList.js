@@ -18,13 +18,13 @@ function incTabs(wbs) {
 function ProjectList() {
     const [, updateProjectListState] = useState();
 
-    function hideChildren(parent_id) {
-        hideSubTree(data[parent_id].id)
+    function hideChildren(id) {
+        hideSubTree(id)
         updateProjectListState({});
     }
 
-    function showChildren(parent_id) {
-        showSubTree(data[parent_id].id)
+    function showChildren(id) {
+        showSubTree(id)
         updateProjectListState({});
     }
 
@@ -82,7 +82,7 @@ function ProjectList() {
         if (column === 'predecessors') return <td>{divEditable(project.id, column, project.predecessors ? project.predecessors instanceof String ? project.predecessors : JSON.stringify(project.predecessors) : null)}</td>;
         if (column === 'start') return <td style={{textAlign: 'center'}}>{project.start}</td>;
         if (column === 'finish') return <td style={{textAlign: 'center'}}>{project.finish}</td>;
-        return (null);
+        return <td></td>;
     }
 
     function tdLast(column) {
