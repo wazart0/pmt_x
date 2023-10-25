@@ -1,9 +1,18 @@
-import React from "react";
-import { Fragment, useState } from "react";
-import { columns, data, addProject, sortByWBS, resetIDs } from "./ProjectVars";
-import { hideSubTree, showSubTree, changeParent } from "./ProjectListTreeManager";
+import React from "react"
+import { Fragment, useState } from "react"
+import { columns, data, addProject, sortByWBS, resetIDs } from "./ProjectVars"
+import { hideSubTree, showSubTree, changeParent } from "./ProjectListTreeManager"
 
 
+
+function projectDetails(id) {
+    return (
+        <div className="projectDetails">
+            id: {id}
+            name: {data[id].name}
+        </div>
+    )
+}
 
 
 
@@ -11,37 +20,42 @@ function incTabs(wbs) {
     // let doc = document.getElementById("td"); TODO: check how to retireve left padding from CSS (now it is hardcoded: 5)
     // let standardPadding = doc.style.paddingLeft;
     let  amount = String(wbs).match(/\./g)
-    if (!amount) return String(5);
-    return String(5 + 25 * amount.length);
+    if (!amount) return String(5)
+    return String(5 + 25 * amount.length)
 }
 
-function ProjectList() {
-    const [, updateProjectListState] = useState();
+const ProjectList = ({ showModal, modal }) => {
+    const [, updateProjectListState] = useState()
+
+    function showProjectDetails(id) {
+        modal = projectDetails(id)
+        showModal()
+    }
 
     function hideChildren(id) {
         hideSubTree(id)
-        updateProjectListState({});
+        updateProjectListState({})
     }
 
     function showChildren(id) {
         showSubTree(id)
-        updateProjectListState({});
+        updateProjectListState({})
     }
 
     function updateValueFromCell(e, id, column) {
-        e.target.textContent = e.target.textContent.trim();
+        e.target.textContent = e.target.textContent.trim()
         if (e.target.textContent === String(data[id][column])) return
         if (column === 'name' && !e.target.textContent) { e.target.textContent = data[id][column]; return; }
         if (column === 'parent') {
             let result = changeParent(id, e.target.textContent !== '' ? Number(e.target.textContent) : null)
-            e.target.textContent = data[id][column];
+            e.target.textContent = data[id][column]
             if (!result) return  
         } else {
             data[id][column] = e.target.textContent;
-            console.log("Updated task: [" + String(id) + "] column: [" + column + "] to: [" + data[id][column]+ "] ");
+            console.log("Updated task: [" + String(id) + "] column: [" + column + "] to: [" + data[id][column]+ "] ")
         }
-        console.log("TODO: Implement data update in DB.");
-        updateProjectListState({});
+        console.log("TODO: Implement data update in DB.")
+        updateProjectListState({})
     }
 
     function addNewProject(e) {
@@ -68,37 +82,38 @@ function ProjectList() {
     }
 
     function divEditable(id, column, value) {
-        return <div suppressContentEditableWarning='true' contentEditable='true' onBlur={(e) => updateValueFromCell(e, id, column)}>{value}</div>;
+        return <div suppressContentEditableWarning='true' contentEditable='true' onBlur={(e) => updateValueFromCell(e, id, column)}>{value}</div>
     }
 
     function td(project, number_of_baselines, column) {
         if (column === 'id') return <td rowSpan={number_of_baselines}>{project.id}</td>;
-        if (column === 'wbs') return <td rowSpan={number_of_baselines}>{project.wbs ? project.wbs : <button onClick={() => addToBaseline(project.id)}>ADD</button>} {project.hasChildren ? project.hiddenChildren ? <button onClick={() => showChildren(project.id)}>[+]</button> : <button onClick={() => hideChildren(project.id)}>[-]</button> : null}</td>;
-        if (column === 'name') return <td rowSpan={number_of_baselines} style={{paddingLeft: incTabs(project.wbs) + 'px'}}>{divEditable(project.id, column, project[column])}</td>;
-        if (column === 'description') return <td rowSpan={number_of_baselines}>{divEditable(project.id, column, project[column])}</td>;
+        if (column === 'wbs') return <td rowSpan={number_of_baselines}>{project.wbs ? project.wbs : <button onClick={() => addToBaseline(project.id)}>ADD</button>} {project.hasChildren ? project.hiddenChildren ? <button onClick={() => showChildren(project.id)}>[+]</button> : <button onClick={() => hideChildren(project.id)}>[-]</button> : null}</td>
+        if (column === 'name') return <td rowSpan={number_of_baselines} style={{marginLeft: incTabs(project.wbs) + 'px'}}>{divEditable(project.id, column, project[column])}</td>
+        if (column === 'edit') return <td rowSpan={number_of_baselines}><button onClick={() => showProjectDetails(project.id)}>EDIT</button></td>
+        if (column === 'description') return <td rowSpan={number_of_baselines}>{divEditable(project.id, column, project[column])}</td>
 
-        if (column === 'worktime') return <td style={{textAlign: 'center'}}>{divEditable(project.id, column, project[column])}</td>;
-        if (column === 'parent') return <td style={{textAlign: 'center'}}>{divEditable(project.id, column, project[column])}</td>;
-        if (column === 'predecessors') return <td>{divEditable(project.id, column, project.predecessors ? project.predecessors instanceof String ? project.predecessors : JSON.stringify(project.predecessors) : null)}</td>;
-        if (column === 'start') return <td style={{textAlign: 'center'}}>{project.start}</td>;
-        if (column === 'finish') return <td style={{textAlign: 'center'}}>{project.finish}</td>;
+        if (column === 'worktime') return <td style={{textAlign: 'center'}}>{divEditable(project.id, column, project[column])}</td>
+        if (column === 'parent') return <td style={{textAlign: 'center'}}>{divEditable(project.id, column, project[column])}</td>
+        if (column === 'predecessors') return <td>{divEditable(project.id, column, project.predecessors ? project.predecessors instanceof String ? project.predecessors : JSON.stringify(project.predecessors) : null)}</td>
+        if (column === 'start') return <td style={{textAlign: 'center'}}>{project.start}</td>
+        if (column === 'finish') return <td style={{textAlign: 'center'}}>{project.finish}</td>
         return <td></td>;
     }
 
     function tdLast(column) {
-        if (column === 'id') return <td>{data.length}</td>;
-        if (column === 'name') return <td><div suppressContentEditableWarning='true' contentEditable='true' onBlur={addNewProject}>{null}</div></td>;
-        return <td></td>;
+        if (column === 'id') return <td>{data.length}</td>
+        if (column === 'name') return <td><div suppressContentEditableWarning='true' contentEditable='true' onBlur={addNewProject}>{null}</div></td>
+        return <td></td>
     }
 
     function tdBaseline(baseline, column) {
         // TODO: check how to retrieve styles and adjust the original one
-        if (column === 'worktime') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.worktime}</td>;
-        if (column === 'parent') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.parent}</td>;
-        if (column === 'predecessors') return <td style={{borderTop: '1px solid black'}}>{baseline.predecessors ? JSON.stringify(baseline.predecessors) : null}</td>;
-        if (column === 'start') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.start}</td>;
-        if (column === 'finish') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.finish}</td>;
-        return (null);
+        if (column === 'worktime') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.worktime}</td>
+        if (column === 'parent') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.parent}</td>
+        if (column === 'predecessors') return <td style={{borderTop: '1px solid black'}}>{baseline.predecessors ? JSON.stringify(baseline.predecessors) : null}</td>
+        if (column === 'start') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.start}</td>
+        if (column === 'finish') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.finish}</td>
+        return (null)
     }
     
 
@@ -141,10 +156,10 @@ function ProjectList() {
                 </tbody>
             </table>
         </div>
-    );
+    )
 }
 
 
 
 
-export default ProjectList;
+export default ProjectList

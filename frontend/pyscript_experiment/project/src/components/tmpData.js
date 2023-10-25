@@ -4,6 +4,7 @@ export const columns = {
     'id': 'ID',
     'wbs': 'WBS',
     'name': 'Name',
+    'edit': 'Edit',
     'description': 'Description',
     'worktime': 'Worktime',
     'parent': 'Parent',
