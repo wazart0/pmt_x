@@ -16,7 +16,6 @@ class App extends Component {
 
         this.data = globalData
         this.columns = globalColumns
-        this.modal = null
 
         initColumnsAndData(demo.columns, demo.data)
     }
@@ -34,10 +33,10 @@ class App extends Component {
             <div className="mainContainer">
                 <h1>React Modal</h1>
                 <Modal show={this.state.show} handleClose={this.hideModal}>
-                    {this.modal} 
+                    tralalaa
                 </Modal>
                 <button type="button" onClick={this.showModal}>Open</button>
-                <ProjectList showModal={this.showModal} modal={this.modal} />
+                <ProjectList data={this.data} columns={this.columns} />
             </div>
         )
     }

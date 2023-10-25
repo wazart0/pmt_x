@@ -1,11 +1,12 @@
-import React from "react"
-import { Fragment, useState } from "react"
+import React, { Component, Fragment } from "react"
 import { columns, data, addProject, sortByWBS, resetIDs } from "./ProjectVars"
 import { hideSubTree, showSubTree, changeParent } from "./ProjectListTreeManager"
+import Modal from "./Modal"
+import { isString } from "./utils.js"
 
 
 
-function projectDetails(id) {
+function md(id) {
     return (
         <div className="projectDetails">
             id: {id}
@@ -16,33 +17,43 @@ function projectDetails(id) {
 
 
 
-function incTabs(wbs) {
-    // let doc = document.getElementById("td"); TODO: check how to retireve left padding from CSS (now it is hardcoded: 5)
-    // let standardPadding = doc.style.paddingLeft;
-    let  amount = String(wbs).match(/\./g)
-    if (!amount) return String(5)
-    return String(5 + 25 * amount.length)
-}
+class ProjectList extends Component {
+    constructor(data, columns) {
+        super()
+        // this.state = {}
+        // this.showModal = this.showModal.bind(this)
+        // this.hideModal = this.hideModal.bind(this)
 
-const ProjectList = ({ showModal, modal }) => {
-    const [, updateProjectListState] = useState()
+        this.data = data
+        this.columns = columns
 
-    function showProjectDetails(id) {
-        modal = projectDetails(id)
-        showModal()
+        // initColumnsAndData(demo.columns, demo.data)
     }
+  
+    // showModal = () => {
+    //     this.setState({ show: true })
+    // }
+  
+    // hideModal = () => {
+    //     this.setState({ show: false })
+    // }
 
-    function hideChildren(id) {
+
+    // showProjectDetails = (id) => {
+    //     modalShow()
+    // }
+
+    hideChildren = (id) => {
         hideSubTree(id)
-        updateProjectListState({})
+        this.setState({})
     }
 
-    function showChildren(id) {
+    showChildren = (id) => {
         showSubTree(id)
-        updateProjectListState({})
+        this.setState({})
     }
 
-    function updateValueFromCell(e, id, column) {
+    updateValueFromCell = (e, id, column) => {
         e.target.textContent = e.target.textContent.trim()
         if (e.target.textContent === String(data[id][column])) return
         if (column === 'name' && !e.target.textContent) { e.target.textContent = data[id][column]; return; }
@@ -55,19 +66,19 @@ const ProjectList = ({ showModal, modal }) => {
             console.log("Updated task: [" + String(id) + "] column: [" + column + "] to: [" + data[id][column]+ "] ")
         }
         console.log("TODO: Implement data update in DB.")
-        updateProjectListState({})
+        this.setState({})
     }
 
-    function addNewProject(e) {
+    addNewProject = (e) => {
         if (!e.target.textContent.trim()) return
         let id = addProject(e.target.textContent.trim())
         e.target.textContent = ''                                     //                                      TODO:         why is it needed!?
         console.log("TODO: Implement data update in DB.")
         console.log("Created task: [" + String(id) + "] to: [" + data[id].name+ "] ")
-        updateProjectListState({})
+        this.setState({})
     }
 
-    function addToBaseline(id) {
+    addToBaseline = (id) => {
         let no_of_new_siblings = 1
         for (let index in data) {
             if (data[index].parent === null && data[index].wbs) {
@@ -78,7 +89,40 @@ const ProjectList = ({ showModal, modal }) => {
         sortByWBS()
         resetIDs()
         console.log("TODO: Implement data update in DB.")
-        updateProjectListState({})
+        this.setState({})
+    }
+    
+
+    render() {
+        return (
+            <div className="projectList">
+                <ProjectListComponent 
+                    showProjectDetails={this.showProjectDetails}
+                    hideChildren={this.hideChildren}
+                    showChildren={this.showChildren}
+                    updateValueFromCell={this.updateValueFromCell}
+                    addNewProject={this.addNewProject}
+                    addToBaseline={this.addToBaseline}
+                />
+            </div>
+        )
+    }
+}
+
+
+
+
+
+
+
+const ProjectListComponent = ({ showProjectDetails, hideChildren, showChildren, updateValueFromCell, addNewProject, addToBaseline }) => {
+
+    function incTabs(wbs) {
+        // let doc = document.getElementById("td"); TODO: check how to retireve left padding from CSS (now it is hardcoded: 5)
+        // let standardPadding = doc.style.paddingLeft;
+        let  amount = String(wbs).match(/\./g)
+        if (!amount) return String(5)
+        return String(5 + 25 * amount.length)
     }
 
     function divEditable(id, column, value) {
@@ -94,10 +138,10 @@ const ProjectList = ({ showModal, modal }) => {
 
         if (column === 'worktime') return <td style={{textAlign: 'center'}}>{divEditable(project.id, column, project[column])}</td>
         if (column === 'parent') return <td style={{textAlign: 'center'}}>{divEditable(project.id, column, project[column])}</td>
-        if (column === 'predecessors') return <td>{divEditable(project.id, column, project.predecessors ? project.predecessors instanceof String ? project.predecessors : JSON.stringify(project.predecessors) : null)}</td>
+        if (column === 'predecessors') return <td>{divEditable(project.id, column, !isString(project.predecessors) ? JSON.stringify(project.predecessors) : null)}</td>
         if (column === 'start') return <td style={{textAlign: 'center'}}>{project.start}</td>
         if (column === 'finish') return <td style={{textAlign: 'center'}}>{project.finish}</td>
-        return <td></td>;
+        return <td></td>
     }
 
     function tdLast(column) {
@@ -110,7 +154,7 @@ const ProjectList = ({ showModal, modal }) => {
         // TODO: check how to retrieve styles and adjust the original one
         if (column === 'worktime') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.worktime}</td>
         if (column === 'parent') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.parent}</td>
-        if (column === 'predecessors') return <td style={{borderTop: '1px solid black'}}>{baseline.predecessors ? JSON.stringify(baseline.predecessors) : null}</td>
+        if (column === 'predecessors') return <td style={{borderTop: '1px solid black'}}>{!isString(baseline.predecessors) ? JSON.stringify(baseline.predecessors) : null}</td>
         if (column === 'start') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.start}</td>
         if (column === 'finish') return <td style={{textAlign: 'center', borderTop: '1px solid black'}}>{baseline.finish}</td>
         return (null)

@@ -1,9 +1,7 @@
 import { data, sortByWBS, resetIDs } from "./ProjectVars";
+import { isString } from "./utils.js"
 
 
-function isString(s) {
-    return typeof(s) === 'string' || s instanceof String;
-}
 
 
 
@@ -151,7 +149,11 @@ export function changeParent(id, parent_id) { // returns true if data has been c
 
 
     // hide project if parent or its children are hidden
-    if (data[id].parent !== null) data[id].hidden = data[data[id].parent].hidden || data[data[id].parent].hiddenChildren
+    let index = id
+    while (data[index].parent !== null) {
+        data[id].hidden = data[index].hidden || data[index].hiddenChildren
+        index = data[index].parent
+    }
 
     return true
 }
