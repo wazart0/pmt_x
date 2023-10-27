@@ -1,69 +1,62 @@
 import React, { Component, Fragment } from "react"
-import { columns, data, addProject, sortByWBS, resetIDs } from "./ProjectVars"
+import { addProject, sortByWBS, resetIDs } from "./ProjectVars"
 import { hideSubTree, showSubTree, changeParent } from "./ProjectListTreeManager"
-import Modal from "./Modal"
+// import Modal from "./Modal"
 import { isString } from "./utils.js"
 
 
 
-function md(id) {
-    return (
-        <div className="projectDetails">
-            id: {id}
-            name: {data[id].name}
-        </div>
-    )
-}
+// function md(id) {
+//     return (
+//         <div className="projectDetails">
+//             id: {id}
+//             name: {data[id].name}
+//         </div>
+//     )
+// }
 
 
 
 class ProjectList extends Component {
-    constructor(data, columns) {
+    constructor({data, columns, modalContent, modalShow}) {
         super()
-        // this.state = {}
-        // this.showModal = this.showModal.bind(this)
-        // this.hideModal = this.hideModal.bind(this)
 
         this.data = data
         this.columns = columns
 
-        // initColumnsAndData(demo.columns, demo.data)
+        this.modalContent = modalContent
+        this.modalShow = modalShow
+
     }
   
-    // showModal = () => {
-    //     this.setState({ show: true })
-    // }
-  
-    // hideModal = () => {
-    //     this.setState({ show: false })
-    // }
 
 
-    // showProjectDetails = (id) => {
-    //     modalShow()
-    // }
+    showProjectDetails = (id) => {
+        this.modalContent.content = ProjectDetails(this.data[id])
+        this.modalShow()
+    }
 
     hideChildren = (id) => {
-        hideSubTree(id)
+        hideSubTree(this.data, id)
         this.setState({})
     }
 
     showChildren = (id) => {
-        showSubTree(id)
+        showSubTree(this.data, id)
         this.setState({})
     }
 
     updateValueFromCell = (e, id, column) => {
         e.target.textContent = e.target.textContent.trim()
-        if (e.target.textContent === String(data[id][column])) return
-        if (column === 'name' && !e.target.textContent) { e.target.textContent = data[id][column]; return; }
+        if (e.target.textContent === String(this.data[id][column])) return
+        if (column === 'name' && !e.target.textContent) { e.target.textContent = this.data[id][column]; return; }
         if (column === 'parent') {
-            let result = changeParent(id, e.target.textContent !== '' ? Number(e.target.textContent) : null)
-            e.target.textContent = data[id][column]
+            let result = changeParent(this.data, id, e.target.textContent !== '' ? Number(e.target.textContent) : null)
+            e.target.textContent = this.data[id][column]
             if (!result) return  
         } else {
-            data[id][column] = e.target.textContent;
-            console.log("Updated task: [" + String(id) + "] column: [" + column + "] to: [" + data[id][column]+ "] ")
+            this.data[id][column] = e.target.textContent;
+            console.log("Updated task: [" + String(id) + "] column: [" + column + "] to: [" + this.data[id][column]+ "] ")
         }
         console.log("TODO: Implement data update in DB.")
         this.setState({})
@@ -71,23 +64,23 @@ class ProjectList extends Component {
 
     addNewProject = (e) => {
         if (!e.target.textContent.trim()) return
-        let id = addProject(e.target.textContent.trim())
+        let id = addProject(this.data, e.target.textContent.trim())
         e.target.textContent = ''                                     //                                      TODO:         why is it needed!?
         console.log("TODO: Implement data update in DB.")
-        console.log("Created task: [" + String(id) + "] to: [" + data[id].name+ "] ")
+        console.log("Created task: [" + String(id) + "] to: [" + this.data[id].name+ "] ")
         this.setState({})
     }
 
     addToBaseline = (id) => {
         let no_of_new_siblings = 1
-        for (let index in data) {
-            if (data[index].parent === null && data[index].wbs) {
+        for (let index in this.data) {
+            if (this.data[index].parent === null && this.data[index].wbs) {
                 no_of_new_siblings = no_of_new_siblings + 1
             }
         }
-        data[id].wbs = String(no_of_new_siblings)
-        sortByWBS()
-        resetIDs()
+        this.data[id].wbs = String(no_of_new_siblings)
+        sortByWBS(this.data)
+        resetIDs(this.data)
         console.log("TODO: Implement data update in DB.")
         this.setState({})
     }
@@ -97,6 +90,8 @@ class ProjectList extends Component {
         return (
             <div className="projectList">
                 <ProjectListComponent 
+                    data={this.data}
+                    columns={this.columns}
                     showProjectDetails={this.showProjectDetails}
                     hideChildren={this.hideChildren}
                     showChildren={this.showChildren}
@@ -111,11 +106,18 @@ class ProjectList extends Component {
 
 
 
+const ProjectDetails = (project) => {
+    return (
+        <div className="projectDetails">
+            id: {project.id}<br/>
+            name: {project.name}
+        </div>
+    )
+}
 
 
 
-
-const ProjectListComponent = ({ showProjectDetails, hideChildren, showChildren, updateValueFromCell, addNewProject, addToBaseline }) => {
+const ProjectListComponent = ({data, columns, showProjectDetails, hideChildren, showChildren, updateValueFromCell, addNewProject, addToBaseline}) => {
 
     function incTabs(wbs) {
         // let doc = document.getElementById("td"); TODO: check how to retireve left padding from CSS (now it is hardcoded: 5)

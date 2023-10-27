@@ -1,11 +1,11 @@
-import { data, sortByWBS, resetIDs } from "./ProjectVars";
+import { sortByWBS, resetIDs } from "./ProjectVars";
 import { isString } from "./utils.js"
 
 
 
 
 
-export function hideSubTree(id) { // assumption is that the data is sorted by ID/WBS, means parent is always before child in array
+export function hideSubTree(data, id) { // assumption is that the data is sorted by ID/WBS, means parent is always before child in array
     let subtree_IDs = [id];
     data[id].hiddenChildren = true;
     for (let index in data) {
@@ -17,7 +17,7 @@ export function hideSubTree(id) { // assumption is that the data is sorted by ID
 }
 
 
-export function showSubTree(id) { // assumption is that the data is sorted by ID/WBS, means parent is always before child in array
+export function showSubTree(data, id) { // assumption is that the data is sorted by ID/WBS, means parent is always before child in array
     let subtree_IDs = [id]
     let children_keep_hidden = []
     data[id].hiddenChildren = false
@@ -33,7 +33,13 @@ export function showSubTree(id) { // assumption is that the data is sorted by ID
 }
 
 
-export function changeParent(id, parent_id) { // returns true if data has been changed, false if no modifications were made
+
+function changeParent_v1(data, id, parent_id) { // returns true if data has been changed, false if no modifications were made
+
+    /* 
+        Cannot make it working something is totally wrong, do not use it for now.
+    */
+
 
     // check if valid (basic, check if parent_id is a child of id)
     if (data[id].parent === parent_id) return false
@@ -48,8 +54,6 @@ export function changeParent(id, parent_id) { // returns true if data has been c
             if (check_subtree.includes(data[index].parent)) check_subtree.push(data[index].id)
         }
         if (check_subtree.includes(parent_id)) return false;
-
-        // console.log(["check_subtree:", check_subtree])
     } 
 
 
@@ -73,8 +77,6 @@ export function changeParent(id, parent_id) { // returns true if data has been c
 
         data[parent_id_old]["hasChildren"] = subtree_parent_old_IDs.length > 1 ? true : false
 
-        // console.log("subtree_parent_IDs:")
-        // console.log(subtree_parent_old_IDs)
         data[id].parent = parent_id
         
         if (data[parent_id_old]["hasChildren"]) {
@@ -107,7 +109,7 @@ export function changeParent(id, parent_id) { // returns true if data has been c
 
 
     // rebuild WBS of project and its children
-    let wbs_new = parent_id === null ? String(no_of_new_siblings) : data[parent_id].wbs + '.' + no_of_new_siblings
+    let wbs_new = (parent_id === null ? String(no_of_new_siblings) : data[parent_id].wbs + '.' + no_of_new_siblings)
 
     if (data[id].hasChildren) {
         let wbs_current_length = data[id].wbs.length
@@ -116,8 +118,6 @@ export function changeParent(id, parent_id) { // returns true if data has been c
         for (let index in data) {
             if (subtree_old_IDs.includes(data[index].parent)) subtree_old_IDs.push(data[index].id)
         }
-        // console.log("subtree_old_IDs:")
-        // console.log(subtree_old_IDs)
 
         for (let index in subtree_old_IDs) {
             if (subtree_old_IDs[index] !== id) data[subtree_old_IDs[index]].wbs = wbs_new + data[subtree_old_IDs[index]].wbs.slice(wbs_current_length)
@@ -127,6 +127,8 @@ export function changeParent(id, parent_id) { // returns true if data has been c
     
     // update relevant data
     data[id].wbs = wbs_new
+
+
     if (parent_id !== null) data[parent_id]["hasChildren"] = true
 
     if (parent_id_old !== null) {
@@ -134,26 +136,145 @@ export function changeParent(id, parent_id) { // returns true if data has been c
         for (let index in data) {
             if (data[index].parent === parent_id_old) {
                 data[parent_id_old]["hasChildren"] = true
-                break;
+                break
             }
         }
     }
 
 
-    // sort data array by WBS
-    sortByWBS()
-
-
-    // allocate new IDs (reset index)
-    resetIDs()
-
-
     // hide project if parent or its children are hidden
-    let index = id
-    while (data[index].parent !== null) {
-        data[id].hidden = data[index].hidden || data[index].hiddenChildren
-        index = data[index].parent
+    if (parent_id !== null) {
+        let index = id
+        while (true) {
+            index = data[index].parent
+            if (data[index].hidden || data[index].hiddenChildren) {
+                data[id].hidden = true
+                break
+            }
+            if (data[index].parent === null) break
+        }
     }
 
+    // console.log('before sortby')
+    // console.log(data[id].wbs)
+    // console.log(data[id].parent)
+    // console.log(structuredClone(data))
+
+    // sort data array by WBS
+    sortByWBS(data)
+
+
+    // console.log('before reset index')
+    // console.log(data[id].wbs)
+    // console.log(data[id].parent)
+    // console.log(structuredClone(data))
+
+    // allocate new IDs (reset index)
+    resetIDs(data)
+
+    // console.log('after reset index')
+    // console.log(data[id].wbs)
+    // console.log(data[id].parent)
+    // console.log(structuredClone(data))
+
+
     return true
+}
+
+
+
+function changeParent_v2(data, id, parent_id) { // assumption is the data is sorted already by WBS
+
+    // check if valid (basic, check if parent_id is a child of id)
+    if (data[id].parent === parent_id) return false
+    if (id === parent_id || parent_id < 0 || parent_id >= data.length) return false
+    if (data[id].wbs !== null && !isString(data[id].wbs)) return false    
+    if (parent_id !== null) if (!Number.isInteger(parent_id) || data[parent_id].wbs === null) return false
+
+    // build helper subtrees
+    let parent_old_id = data[id].parent
+    let project_subtree = [id]
+    let parent_new_subtree = parent_id === null ? [] : [parent_id]
+    let parent_old_subtree = parent_old_id === null ? [] : [parent_old_id]
+    let no_of_new_siblings = 1 // determine number of child for new parent
+    for (let index in data) {
+        if (project_subtree.includes(data[index].parent)) project_subtree.push(data[index].id)
+        if ((parent_new_subtree.includes(data[index].parent) || parent_id === null) && data[index].wbs !== null) parent_new_subtree.push(data[index].id)
+        if (data[index].id !== id && ((parent_old_subtree.includes(data[index].parent) && !project_subtree.includes(data[index].parent)) || (parent_old_id === null && data[index].wbs !== null))) parent_old_subtree.push(data[index].id)
+        if (data[index].parent === parent_id && data[index].wbs !== null) no_of_new_siblings = no_of_new_siblings + 1
+    }
+
+    console.log(["Move: ", id, " amount: ", project_subtree.length, " under: ", parent_id])
+    console.log(["Slice data:", parent_id + parent_new_subtree.length, id, project_subtree.length])
+
+    if (id < parent_id && parent_id < id + project_subtree.length) return false;
+
+
+    console.log(structuredClone(data))
+
+
+    data[id].parent = parent_id
+
+    if (parent_id !== null) data[parent_id].hasChildren = true
+    if (parent_old_id !== null) data[parent_old_id].hasChildren = parent_old_subtree.length > 1
+
+    // update hiding
+    if (parent_id !== null) {
+        let index = id
+        while (true) {
+            index = data[index].parent
+            if (data[index].hidden || data[index].hiddenChildren) {
+                data[id].hidden = true
+                break
+            }
+            if (data[index].parent === null) break
+        }
+    }
+
+
+    // reposition the node and its children
+    let new2old_map
+    if (parent_id + parent_new_subtree.length !== id) { // restructure if position needs to be changed
+        if (parent_id + parent_new_subtree.length < id) {
+            data.splice(parent_id + parent_new_subtree.length, 0, ...data.splice(id, project_subtree.length))
+        } else {
+            data.splice(parent_id + parent_new_subtree.length - project_subtree.length, 0, ...data.splice(id, project_subtree.length))
+        }
+
+        // Reset IDs
+        new2old_map = resetIDs(data)
+    }
+
+    // remap project subtree
+    if (typeof new2old_map !== 'undefined') {
+        project_subtree.forEach((project_id, index) => project_subtree[index] = new2old_map.indexOf(project_id))
+        id = new2old_map.indexOf(id)
+        if (parent_id !== null) parent_id = new2old_map.indexOf(parent_id)
+    }
+
+    
+    console.log(structuredClone(data))
+
+
+    // Rebuild WBS: 1st update current project, 2nd update old parent 
+    let wbs_new = (parent_id === null ? String(no_of_new_siblings) : data[parent_id].wbs + '.' + no_of_new_siblings)
+    if (data[id].wbs) {
+        project_subtree.forEach((project_id) => {
+            if (project_id !== id) data[project_id].wbs = wbs_new + data[project_id].wbs.slice(data[id].wbs.length)
+        })
+    }
+    data[id].wbs = wbs_new
+
+
+
+
+
+
+    return true
+}
+
+
+export function changeParent(data, id, parent_id) {
+    // return changeParent_v1(data, id, parent_id)
+    return changeParent_v2(data, id, parent_id)
 }
