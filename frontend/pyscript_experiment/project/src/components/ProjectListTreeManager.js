@@ -1,4 +1,4 @@
-import { sortByWBS, resetIDs } from "./ProjectVars";
+import { resetIDs } from "./ProjectVars";
 import { isString } from "./utils.js"
 
 
