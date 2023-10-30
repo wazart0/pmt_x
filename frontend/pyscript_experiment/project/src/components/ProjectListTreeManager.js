@@ -250,6 +250,7 @@ function changeParent_v2(data, id, parent_id) { // assumption is the data is sor
         project_subtree.forEach((project_id, index) => project_subtree[index] = new2old_map.indexOf(project_id))
         id = new2old_map.indexOf(id)
         if (parent_id !== null) parent_id = new2old_map.indexOf(parent_id)
+        if (parent_old_id !== null) parent_old_id = new2old_map.indexOf(parent_old_id)
     }
 
     
@@ -266,6 +267,39 @@ function changeParent_v2(data, id, parent_id) { // assumption is the data is sor
     data[id].wbs = wbs_new
 
 
+    if (parent_old_id !== null) {
+        if (data[parent_old_id].hasChildren) {
+            let parent_old_subtree_new = parent_old_id === null ? [] : [parent_old_id]
+            data.forEach((element) => {
+                if (parent_old_subtree_new.includes(element.parent)) parent_old_subtree_new.push(element.id)
+            })
+            let number_parent = 0
+            let wbs_parent_length
+            parent_old_subtree_new.forEach((project_id) => {
+                if (data[project_id].wbs === null || project_id === parent_old_id) return
+                if (data[project_id].parent === parent_old_id) {
+                    wbs_parent_length = data[project_id].wbs.length
+                    number_parent = number_parent + 1
+                    data[project_id].wbs = data[parent_old_id].wbs + '.' + String(number_parent)
+                } else {
+                    data[project_id].wbs = data[parent_old_id].wbs + '.' + String(number_parent) + data[project_id].wbs.slice(wbs_parent_length)
+                }
+            })
+        }
+    } else { // update all tasks
+        let number_parent = 0
+        let wbs_parent_length
+        data.forEach((element, index) => {
+            if (element.wbs === null) return
+            if (element.parent === null) {
+                wbs_parent_length = element.wbs.length
+                number_parent = number_parent + 1
+                data[index].wbs = String(number_parent)
+            } else {
+                data[index].wbs = String(number_parent) + element.wbs.slice(wbs_parent_length)
+            }
+        })
+    }
 
 
 
@@ -275,6 +309,6 @@ function changeParent_v2(data, id, parent_id) { // assumption is the data is sor
 
 
 export function changeParent(data, id, parent_id) {
-    // return changeParent_v1(data, id, parent_id)
     return changeParent_v2(data, id, parent_id)
+    return changeParent_v1(data, id, parent_id)
 }
