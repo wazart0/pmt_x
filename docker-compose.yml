@@ -20,4 +20,3 @@ networks:
   default:
     name: pmt_x
     driver: bridge
-    
