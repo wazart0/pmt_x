@@ -42,7 +42,10 @@ class App extends Component {
                 <Modal show={this.state.show} handleClose={this.modalHide}>
                     {this.modalContent}
                 </Modal>
-                <ProjectList data={this.data} columns={this.columns} modalContent={this.modalContent} modalShow={this.modalShow} />
+                <div background-color='blue' display='inline-block' width='200px' overflow='scroll'>
+                    <ProjectList data={this.data} columns={this.columns} modalContent={this.modalContent} modalShow={this.modalShow} />
+                </div>
+                <div background-color='powderblue' display='inline-block' width='50%'>ddd</div>
             </div>
         )
     }

@@ -6,7 +6,7 @@ WORKDIR /app
 RUN apk add --no-cache npm
 
 RUN npm install -g nodemon 
-RUN npm install gantt rsuite --save
+# RUN npm install gantt rsuite --save
 
 
 

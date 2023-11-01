@@ -1,0 +1,23 @@
+version: "3"
+
+services:
+
+  fe:
+    image: pmt_x_fe
+    build: ./frontend/react/
+
+    working_dir: /app/project
+    command: nodemon index.js -L #npm run dev
+
+    ports:
+      - 3000:3000
+
+    volumes:
+      - ./frontend/react/:/app:Z
+
+
+networks:
+  default:
+    name: pmt_x
+    driver: bridge
+    

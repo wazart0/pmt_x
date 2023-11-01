@@ -3,6 +3,8 @@ import { addProject, sortByWBS, resetIDs } from "./ProjectVars"
 import { hideSubTree, showSubTree, changeParent } from "./ProjectListTreeManager"
 // import Modal from "./Modal"
 import { isString } from "./utils.js"
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 
 
@@ -32,7 +34,7 @@ class ProjectList extends Component {
 
 
     showProjectDetails = (id) => {
-        this.modalContent.content = ProjectDetails(this.data[id])
+        this.modalContent.content = ProjectDetailsComponent(this.data, this.data[id])
         this.modalShow()
     }
 
@@ -106,11 +108,27 @@ class ProjectList extends Component {
 
 
 
-const ProjectDetails = (project) => {
+const ProjectDetailsComponent = (data, project) => {
+
+    function markedjs(markdown) { 
+        if (markdown === null) return null
+        return {__html: DOMPurify.sanitize(marked.parse(markdown))} 
+    }
+    const markup = markedjs(project.description);
+
+    function updateDescription(e) {
+        console.log('onBlur: description')
+        console.log(e)
+        console.log(e.target.attributes.projectid.value)
+        data[Number(e.target.attributes.projectid.value)].description = e.target.textContent
+    }
+
     return (
         <div className="projectDetails">
-            id: {project.id}<br/>
-            name: {project.name}
+            <div>{project.wbs ? project.wbs + '. ' : null}{project.name}</div>
+            <textarea projectid={project.id} rows="6" cols="50" onBlur={updateDescription}>
+            </textarea>
+            <div dangerouslySetInnerHTML={markup}></div>
         </div>
     )
 }
@@ -135,7 +153,7 @@ const ProjectListComponent = ({data, columns, showProjectDetails, hideChildren, 
         if (column === 'id') return <td rowSpan={number_of_baselines}>{project.id}</td>;
         if (column === 'wbs') return <td rowSpan={number_of_baselines}>{project.wbs ? project.wbs : <button onClick={() => addToBaseline(project.id)}>ADD</button>} {project.hasChildren ? project.hiddenChildren ? <button onClick={() => showChildren(project.id)}>[+]</button> : <button onClick={() => hideChildren(project.id)}>[-]</button> : null}</td>
         if (column === 'name') return <td rowSpan={number_of_baselines} style={{marginLeft: incTabs(project.wbs) + 'px'}}>{divEditable(project.id, column, project[column])}</td>
-        if (column === 'edit') return <td rowSpan={number_of_baselines}><button onClick={() => showProjectDetails(project.id)}>EDIT</button></td>
+        if (column === 'details') return <td rowSpan={number_of_baselines}><button onClick={() => showProjectDetails(project.id)}>OPEN</button></td>
         if (column === 'description') return <td rowSpan={number_of_baselines}>{divEditable(project.id, column, project[column])}</td>
 
         if (column === 'worktime') return <td style={{textAlign: 'center'}}>{divEditable(project.id, column, project[column])}</td>
