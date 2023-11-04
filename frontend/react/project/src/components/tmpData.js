@@ -26,12 +26,13 @@ export const data = [
         'start': '2023-09-12',
         'finish': '2023-09-26',
         'parent': null,
-        'predecessors': [
-            {
-                'project': { 'id': '2'},
-                'type': 'FS'
-            }
-        ],
+        'predecessors': '2FS',
+        // [
+        //     {
+        //         'project': { 'id': '2'},
+        //         'type': 'FS'
+        //     }
+        // ],
 
         'baselines': [
             {
@@ -40,12 +41,13 @@ export const data = [
                 'start': '2023-09-12',
                 'finish': '2023-09-26',
                 'parent': null,
-                'predecessors': [
-                    {
-                        'project': { 'id': '2'},
-                        'type': 'FS'
-                    }
-                ]
+                'predecessors': '2FS',
+                // [
+                //     {
+                //         'project': { 'id': '2'},
+                //         'type': 'FS'
+                //     }
+                // ]
             },
             {
                 'wbs': '1',

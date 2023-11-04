@@ -3,40 +3,22 @@ import { addProject, sortByWBS, resetIDs } from "./ProjectVars"
 import { hideSubTree, showSubTree, changeParent } from "./ProjectListTreeManager"
 // import Modal from "./Modal"
 import { isString } from "./utils.js"
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
 
 
 
-// function md(id) {
-//     return (
-//         <div className="projectDetails">
-//             id: {id}
-//             name: {data[id].name}
-//         </div>
-//     )
-// }
 
 
 
 class ProjectList extends Component {
-    constructor({data, columns, modalContent, modalShow}) {
+    constructor({data, columns, showProjectDetails}) {
         super()
 
         this.data = data
         this.columns = columns
 
-        this.modalContent = modalContent
-        this.modalShow = modalShow
-
+        this.showProjectDetails = showProjectDetails
     }
   
-
-
-    showProjectDetails = (id) => {
-        this.modalContent.content = ProjectDetailsComponent(this.data, this.data[id])
-        this.modalShow()
-    }
 
     hideChildren = (id) => {
         hideSubTree(this.data, id)
@@ -51,15 +33,55 @@ class ProjectList extends Component {
     updateValueFromCell = (e, id, column) => {
         e.target.textContent = e.target.textContent.trim()
         if (e.target.textContent === String(this.data[id][column])) return
-        if (column === 'name' && !e.target.textContent) { e.target.textContent = this.data[id][column]; return; }
-        if (column === 'parent') {
-            let result = changeParent(this.data, id, e.target.textContent !== '' ? Number(e.target.textContent) : null)
-            e.target.textContent = this.data[id][column]
-            if (!result) return  
-        } else {
-            this.data[id][column] = e.target.textContent;
-            console.log("Updated task: [" + String(id) + "] column: [" + column + "] to: [" + this.data[id][column]+ "] ")
+        switch (column) {
+            case 'name':
+                if (!e.target.textContent) { e.target.textContent = this.data[id][column]; return; }
+                this.data[id][column] = e.target.textContent;
+                break
+
+            case 'parent':
+                let result = changeParent(this.data, id, e.target.textContent !== '' ? Number(e.target.textContent) : null)
+                e.target.textContent = this.data[id][column]
+                if (!result) return
+                break
+
+            case 'predecessors':
+                this.data[id][column] = e.target.textContent;
+                break
+
+            default:
+                this.data[id][column] = e.target.textContent;
         }
+        // if (column === 'name' && !e.target.textContent) { e.target.textContent = this.data[id][column]; return; }
+        // if (column === 'parent') {
+        //     let result = changeParent(this.data, id, e.target.textContent !== '' ? Number(e.target.textContent) : null)
+        //     e.target.textContent = this.data[id][column]
+        //     if (!result) return  
+        // }
+        // if (column === 'predecessors') {
+// validate format
+// regex: ((([0-9]*[sfSF]{2}\s*\+\s*[0-9]+)|([0-9]*[sfSF]{2})),\s*)|(([0-9]*[sfSF]{2}\s*\+\s*[0-9]+)|([0-9]*[sfSF]{2})) https://regexr.com/
+// asdf
+// 2fs
+// 2FS
+// 2SF
+// 3SS
+// 2ss
+// 3ff
+// 234sf
+// 23435ffsdf
+// 23435ff+12
+// 23435ff + 12
+// 23435ff+12, 34sf
+// 23435ff + 12, 234ff+24
+// send to BE on que
+        //     e.target.textContent = this.data[id][column]
+        //     if (!result) return  
+        // } else {
+        //     this.data[id][column] = e.target.textContent;
+        //     console.log("Updated task: [" + String(id) + "] column: [" + column + "] to: [" + this.data[id][column]+ "] ")
+        // }
+        console.log("Updated task: [" + String(id) + "] column: [" + column + "] to: [" + this.data[id][column]+ "] ")
         console.log("TODO: Implement data update in DB.")
         this.setState({})
     }
@@ -108,30 +130,6 @@ class ProjectList extends Component {
 
 
 
-const ProjectDetailsComponent = (data, project) => {
-
-    function markedjs(markdown) { 
-        if (markdown === null) return null
-        return {__html: DOMPurify.sanitize(marked.parse(markdown))} 
-    }
-    const markup = markedjs(project.description);
-
-    function updateDescription(e) {
-        console.log('onBlur: description')
-        console.log(e)
-        console.log(e.target.attributes.projectid.value)
-        data[Number(e.target.attributes.projectid.value)].description = e.target.textContent
-    }
-
-    return (
-        <div className="projectDetails">
-            <div>{project.wbs ? project.wbs + '. ' : null}{project.name}</div>
-            <textarea projectid={project.id} rows="6" cols="50" onBlur={updateDescription}>
-            </textarea>
-            <div dangerouslySetInnerHTML={markup}></div>
-        </div>
-    )
-}
 
 
 
@@ -158,7 +156,7 @@ const ProjectListComponent = ({data, columns, showProjectDetails, hideChildren, 
 
         if (column === 'worktime') return <td style={{textAlign: 'center'}}>{divEditable(project.id, column, project[column])}</td>
         if (column === 'parent') return <td style={{textAlign: 'center'}}>{divEditable(project.id, column, project[column])}</td>
-        if (column === 'predecessors') return <td>{divEditable(project.id, column, !isString(project.predecessors) ? JSON.stringify(project.predecessors) : null)}</td>
+        if (column === 'predecessors') return <td>{divEditable(project.id, column, project[column])}</td>
         if (column === 'start') return <td style={{textAlign: 'center'}}>{project.start}</td>
         if (column === 'finish') return <td style={{textAlign: 'center'}}>{project.finish}</td>
         return <td></td>
