@@ -1,9 +1,9 @@
+uvicorn
+fastapi
 requests
 rfc3339
 python-dateutil
 pytz
-fastapi
-uvicorn[standard]
 pandas
-openpyxl
-pydgraph
+websockets
+# pydgraph

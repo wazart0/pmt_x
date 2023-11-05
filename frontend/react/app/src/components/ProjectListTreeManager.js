@@ -312,3 +312,8 @@ export function changeParent(data, id, parent_id) {
     // return changeParent_v1(data, id, parent_id)
     return changeParent_v2(data, id, parent_id)
 }
+
+
+export function arePredecesorsLooped(data, id, predecessors) {
+    return false;
+}
