@@ -1,9 +1,11 @@
 import React, { Component } from "react"
 import {ProjectList, ProjectListRenderer} from "./ProjectListRenderer"
-import { sortByWBS } from "./ProjectVars"
+import { sortByWBS } from "./ProjectListTreeManager"
 import * as demo from "./tmpData"
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import TasksListCallbacks from "./TasksListCallbacks"
+import TasksListMessages from "./TasksListMessages"
 
 
 
@@ -42,54 +44,39 @@ class Dashboard extends Component {
             'data': []
         }
 
-        this.console = console
-
-        this.data = this.state.data //structuredClone(demo.data)
         this.columns = structuredClone(demo.columns)
 
-        this.websocket = new WebSocket("ws://localhost:8000/taskslist");
-        this.websocket.onmessage = this.newTasksList
-        
-        // sortByWBS(this.data)
+        this.tasksList = new TasksListMessages("ws://localhost:8000/taskslist")
+        this.tasksList.onmessage = this.newTasksList
+        this.tasksListCallbacks = new TasksListCallbacks(this.tasksList)
 
+        this.console = console
         this.details = null
     }
+
 
     newTasksList = (e) => {
-        this.data = JSON.parse(e.data)
-        this.setState({
-            'data': this.data
-        })
+        let data = JSON.parse(e.data)
+        sortByWBS(data)
+        this.setState({ 'data': data })
     }
+
 
     sendMessage = (message) => {
-        this.websocket.send(JSON.stringify(message))
+        this.tasksList.send(JSON.stringify(message))
     }
 
-    // ws.onmessage = function(event) {
-    //     var messages = document.getElementById('messages')
-    //     var message = document.createElement('li')
-    //     var content = document.createTextNode(event.data)
-    //     message.appendChild(content)
-    //     messages.appendChild(message)
-    // };
 
-    // function sendMessage(event) {
-    //     var input = document.getElementById("messageText")
-    //     ws.send(input.value)
-    //     input.value = ''
-    //     event.preventDefault()
+    // showProjectDetails = (id) => {
+    //     this.details = ProjectDetailsComponent(this.data, this.data[id], this.closeProjectDetails)
+    //     this.setState({})
     // }
 
-    showProjectDetails = (id) => {
-        this.details = ProjectDetailsComponent(this.data, this.data[id], this.closeProjectDetails)
-        this.setState({})
-    }
 
-    closeProjectDetails = () => {
-        this.details = null
-        this.setState({})
-    }
+    // closeProjectDetails = () => {
+    //     this.details = null
+    //     this.setState({})
+    // }
 
 
     render() {
@@ -98,7 +85,7 @@ class Dashboard extends Component {
                 <button onClick={() => this.sendMessage({})}>GET DATA</button>
                 {/* <div display='flex' flexDirection='row'> */}
                     {/* <ProjectList state={this.state} columns={this.columns} showProjectDetails={this.showProjectDetails} /> */}
-                    <ProjectListRenderer state={this.state} columns={this.columns}/>
+                    <ProjectListRenderer state={this.state} columns={this.columns} callbacks={this.tasksListCallbacks} />
                     {this.details}
                 {/* </div> */}
                 <div>{this.console.render()}</div>

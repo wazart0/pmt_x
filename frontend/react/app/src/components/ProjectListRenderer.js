@@ -7,7 +7,7 @@ import { isString } from "./utils.js"
 
 
 
-export const ProjectListRenderer = ({state, columns, showProjectDetails, hideChildren, showChildren, updateValueFromCell, addNewProject, addToBaseline}) => {
+export const ProjectListRenderer = ({state, columns, callbacks, showProjectDetails, hideChildren, showChildren, updateValueFromCell, addToBaseline}) => {
     const data = state.data
 
     function incTabs(wbs) {
@@ -27,7 +27,7 @@ export const ProjectListRenderer = ({state, columns, showProjectDetails, hideChi
             case 'id':
                 return <td rowSpan={number_of_baselines}>{project.id}</td>;
             case 'wbs':
-                return <td rowSpan={number_of_baselines}>{project.wbs ? project.wbs : <button onClick={() => addToBaseline(project.id)}>ADD</button>} {project.hasChildren ? project.hiddenChildren ? <button onClick={() => showChildren(project.id)}>[+]</button> : <button onClick={() => hideChildren(project.id)}>[-]</button> : null}</td>
+                return <td rowSpan={number_of_baselines}>{project.wbs ? project.wbs : <button onClick={() => callbacks.addTaskToBaseline(project.id)}>ADD</button>} {project.hasChildren ? project.hiddenChildren ? <button onClick={() => showChildren(project.id)}>[+]</button> : <button onClick={() => hideChildren(project.id)}>[-]</button> : null}</td>
             case 'name':
                 return <td rowSpan={number_of_baselines} style={{marginLeft: incTabs(project.wbs) + 'px'}}>{divEditable(project.id, column, project[column])}</td>
             case 'details':
@@ -56,7 +56,7 @@ export const ProjectListRenderer = ({state, columns, showProjectDetails, hideChi
             case 'id': 
                 return <td>{data.length}</td>
             case 'name': 
-                return <td><div suppressContentEditableWarning='true' contentEditable='true' onBlur={addNewProject}>{null}</div></td>
+                return <td><div suppressContentEditableWarning='true' contentEditable='true' onBlur={callbacks.addTask}>{null}</div></td>
             default: 
                 return <td></td>
         }

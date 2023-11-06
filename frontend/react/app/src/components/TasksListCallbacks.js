@@ -1,14 +1,27 @@
+import * as Validate from "./ProjectListInputs"
 
 
-export function addTaskInputValidate(input) {
-    if (!input.trim()) return false
-    return true
+
+class TasksListCallbacks {
+    constructor(tasksMessages) {
+        this.tasksMessages = tasksMessages
+    }
+
+    
+    addTask = (e) => {
+        if (!Validate.addTaskInputValidate(e.target.textContent)) return
+        this.tasksMessages.addTask(Validate.addTaskInputTransform(e.target.textContent))
+        e.target.textContent = '' //          why is it needed??!! 
+    }
+
+
+    addTaskToBaseline = (taskId) => {
+        this.tasksMessages.addTaskToBaseline(taskId)
+    }
+
 }
 
-export function addTaskInputTransform(input) {
-    return input.trim()
-}
-
+export default TasksListCallbacks
 
 //     updateValueFromCell = (e, id, column) => {
 //         e.target.textContent = e.target.textContent.trim()
@@ -74,17 +87,6 @@ export function addTaskInputTransform(input) {
 //         this.setState({})
 //     }
 
-//     addToBaseline = (id) => {
-//         let no_of_new_siblings = 1
-//         for (let index in this.data) {
-//             if (this.data[index].parent === null && this.data[index].wbs) {
-//                 no_of_new_siblings = no_of_new_siblings + 1
-//             }
-//         }
-//         this.data[id].wbs = String(no_of_new_siblings)
-//         sortByWBS(this.data)
-//         resetIDs(this.data)
-//         console.log("TODO: Implement data update in DB.")
-//         this.setState({})
-//     }
+
+
     

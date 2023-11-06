@@ -23,6 +23,7 @@ services:
     volumes:
       - ./backend/app:/app:Z
 
+
   fe:
     image: pmt_x_fe
     build: ./frontend/react/

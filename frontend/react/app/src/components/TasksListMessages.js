@@ -1,15 +1,33 @@
 
+class TasksListMessages extends WebSocket {
 
-
-class ProjectListBackEnd extends Websocket {
-    constructor(params) {
-        super(params)
+    addTask = (name) => {
+        const msg = {
+            'name': 'addTask',
+            'metadata': {
+                'taskName': name
+            }
+        }
+        this.send(JSON.stringify(msg))
     }
+
+
+    addTaskToBaseline = (taskId) => {
+        const msg = {
+            'name': 'addTaskToBaseline',
+            'metadata': {
+                'taskId': taskId
+            }
+        }
+        this.send(JSON.stringify(msg))
+    }
+
+
 }
 
 
 
-export default ProjectListBackEnd
+export default TasksListMessages
 
 
 // class ProjectList extends Component {

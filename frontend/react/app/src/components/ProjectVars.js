@@ -1,30 +1,5 @@
 
 
-// export var columns = {};
-
-// export var data = [];
-
-
-export function addProject(data, name) {
-    let id = data.length
-    data.push({
-        'id': id,
-        'name': name,
-        'description': null,
-        'baselines': [],
-
-        'wbs': null,
-        'worktime': null,
-        'start': null,
-        'finish': null,
-        'parent': null,
-
-        'hidden': false,
-        'hasChildren': false,
-        'hiddenChildren': false
-    })
-    return id
-}
 
 export function validateParentAgainstWBS() {
     return true
@@ -48,22 +23,6 @@ export function resetIDs(data) {
 
 export function overwriteNullWBS() {
 
-}
-
-export function sortByWBS(data) {
-    function compare(a, b) {
-        if (a.wbs === b.wbs) return 0
-        if (a.wbs === null) return 1
-        if (b.wbs === null) return -1
-        const a_array = a.wbs.split('.')
-        const b_array = b.wbs.split('.')
-        for (let i in (a_array.length < b_array.length) ? a_array : b_array) {
-            if (Number(a_array[i]) < Number(b_array[i])) return -1
-            if (Number(a_array[i]) > Number(b_array[i])) return 1
-        }
-        return 0
-    }
-    data.sort(compare)
 }
 
 // export function setColumns(columns_dict) {

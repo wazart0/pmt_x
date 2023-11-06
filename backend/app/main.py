@@ -1,7 +1,9 @@
 from fastapi import FastAPI, WebSocket
-import json
+import json, copy
 
-from src.TasksList import TasksList
+# from src.TasksList import TasksList
+from src.TasksListMessages import TasksListMessages
+from src.tmpdata import demo_data
 
 
 
@@ -11,22 +13,17 @@ app = FastAPI()
 
 
 @app.get("/health")
-async def health():
+async def health() -> str:
     return 'OK'
-
-
-# @app.get("/data")
-# async def data():
-#     return taskslist.data
 
 
 @app.websocket("/taskslist")
 async def websocket_taskslist(websocket: WebSocket):
-    taskslist = TasksList()
+    taskslist = TasksListMessages()
+    taskslist.tasks_list.reinit_tasks(copy.deepcopy(demo_data))
     await websocket.accept()
     print('client connected to taskslist ws')
     while True:
         data = await websocket.receive_text()
-        data_json = json.loads(data)
-        print(data_json)
-        await websocket.send_text(json.dumps(taskslist.data))
+        taskslist.exec(json.loads(data))
+        await websocket.send_text(json.dumps(taskslist.tasks_list.tasks))

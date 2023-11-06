@@ -1,160 +1,22 @@
-
+import functools
 
 
 
 class TasksList(object):
-    def __init__(self) -> None:
-        
-        self.data = [
-            {
-                'id': 0,
-                'name': 'task one',
-                'description': 'some desc',
 
-                'wbs': '1',
-                'worktime': '80',
-                'start': '2023-09-12',
-                'finish': '2023-09-26',
-                'parent': None,
-                'predecessors': '2FS',
-                # // [
-                # //     {
-                # //         'project': { 'id': '2'},
-                # //         'type': 'FS'
-                # //     }
-                # // ],
-
-                'baselines': [
-                    {
-                        'wbs': '1',
-                        'worktime': '80',
-                        'start': '2023-09-12',
-                        'finish': '2023-09-26',
-                        'parent': None,
-                        'predecessors': '2FS',
-                        # // [
-                        # //     {
-                        # //         'project': { 'id': '2'},
-                        # //         'type': 'FS'
-                        # //     }
-                        # // ]
-                    },
-                    {
-                        'wbs': '1',
-                        'worktime': '80',
-                        'start': '2023-09-12',
-                        'finish': '2023-09-26',
-                        'parent': None
-                    }
-                ],
-
-                'hidden': False,
-                'hasChildren': True,
-                'hiddenChildren': False
-            },
-            {
-                'id': 1,
-                'name': 'task one one',
-                'description': 'some desc',
-
-                'wbs': '1.1',
-                'worktime': '80',
-                'start': '2023-09-12',
-                'finish': '2023-09-26',
-                'parent': 0,
-
-                'baselines': [
-                    {
-                        'wbs': '1.1',
-                        'worktime': '80',
-                        'start': '2023-09-12',
-                        'finish': '2023-09-26',
-                        'parent': 0
-                    },
-                    {
-                        'wbs': '1.1',
-                        'worktime': '45',
-                        'start': '2023-09-15',
-                        'finish': '2023-09-23',
-                        'parent': 0
-                    },
-                    {
-                        'wbs': '1.1',
-                        'worktime': '80',
-                        'start': '2023-09-12',
-                        'finish': '2023-09-26',
-                        'parent': 0
-                    }
-                ],
-                
-                'hidden': False,
-                'hasChildren': False,
-                'hiddenChildren': False
-            },
-            {
-                'id': 2,
-                'name': 'task two',
-                'description': 'some desc',
-                
-                'wbs': '2',
-                'worktime': '80',
-                'start': '2023-09-12',
-                'finish': '2023-09-26',
-                'parent': None,
-
-                'baselines': [
-                    {
-                        'wbs': '2',
-                        'worktime': '80',
-                        'start': '2023-09-12',
-                        'finish': '2023-09-26',
-                        'parent': None
-                    }
-                ],
-
-                'hidden': False,
-                'hasChildren': False,
-                'hiddenChildren': False
-            },
-            {
-                'id': 3,
-                'name': 'task three',
-                'description': 'some desc',
-
-                'wbs': None,
-                'worktime': None,
-                'start': None,
-                'finish': None,
-                'parent': None,
-
-                'baselines': [],
-
-                'hidden': False,
-                'hasChildren': False,
-                'hiddenChildren': False
-            },
-            {
-                'id': 4,
-                'name': 'task four',
-                'description': 'some desc',
-                'baselines': [],
-
-                'wbs': None,
-                'worktime': None,
-                'start': None,
-                'finish': None,
-                'parent': None,
-
-                'hidden': False,
-                'hasChildren': False,
-                'hiddenChildren': False
-            }
-        ]
+    def reinit_tasks(self, tasks) -> None:
+        self.tasks = tasks
+        # self.recreate_id2index_map()
 
 
-    def add_task(self, name):
-        self.data.append({
-            'id': len(self.data),
+    def index(self, task_id) -> int:
+        for index in range(len(self.tasks)): 
+            if task_id == self.tasks[index]['id']: return index
+
+
+    def add_task(self, name) -> None:
+        self.tasks.append({
+            'id': len(self.tasks),
             'name': name,
             'description': None,
             'baselines': [],
@@ -169,4 +31,37 @@ class TasksList(object):
             'hasChildren': False,
             'hiddenChildren': False
         })
-        return True
+        # self.recreate_id2index_map()
+
+
+    def add_task_to_baseline(self, task_id, baseline_id = None) -> None:
+        no_of_siblings = 1
+        for task in self.tasks:
+            if task['parent'] is None and task['wbs'] is not None:
+                no_of_siblings += 1
+
+        self.tasks[self.index(task_id)]['wbs'] = str(no_of_siblings)
+        # self.recreate_id2index_map()
+
+
+    def sort_by_wbs(self) -> None:
+        def compare(a, b) -> int:
+            if a['wbs'] == b['wbs']: return 0
+            if a['wbs'] == None: return 1
+            if b['wbs'] == None: return -1
+            a_array = a['wbs'].split('.')
+            b_array = b['wbs'].split('.')
+            for i in range(len(a_array) if len(a_array) < len(b_array) else len(b_array)):
+                if int(a_array[i]) < int(b_array[i]): return -1
+                if int(a_array[i]) > int(b_array[i]): return 1
+            return 0
+        self.tasks.sort(key=functools.cmp_to_key(compare))
+        # self.recreate_id2index_map()
+
+
+    def recreate_id2index_map(self) -> None:
+        index = 0
+        self.id2index_map = {}
+        for task in self.tasks: 
+            self.id2index_map[task['id']] = index
+            index += 1
