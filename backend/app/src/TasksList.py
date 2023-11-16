@@ -12,6 +12,7 @@ class TasksList(object):
     def index(self, task_id) -> int:
         for index in range(len(self.tasks)): 
             if task_id == self.tasks[index]['id']: return index
+        return None
 
 
     def add_task(self, name) -> None:
@@ -42,6 +43,27 @@ class TasksList(object):
 
         self.tasks[self.index(task_id)]['wbs'] = str(no_of_siblings)
         # self.recreate_id2index_map()
+
+
+    def hide_subtree(self, task_id) -> None: # assumption is that the data is sorted by ID/WBS, means parent is always before child in array
+        subtree = [task_id]
+        self.tasks[self.index(task_id)]['hiddenChildren'] = True
+        for task in self.tasks:
+            if task['parent'] not in subtree: continue
+            if task['hasChildren']: subtree.append(task['id'])
+            task['hidden'] = True
+
+
+    def show_subtree(self, task_id) -> None: # assumption is that the data is sorted by ID/WBS, means parent is always before child in array
+        subtree = [task_id]
+        children_kept_hidden = []
+        self.tasks[self.index(task_id)]['hiddenChildren'] = False
+        for task in self.tasks:
+            if task['parent'] not in subtree: continue
+            if task['hasChildren']: subtree.append(task['id'])
+            if (task['parent'] in children_kept_hidden or task['hiddenChildren'] == True) and task['hasChildren']:
+                children_kept_hidden.append(task['id'])
+            if task['parent'] not in children_kept_hidden: task['hidden'] = False
 
 
     def sort_by_wbs(self) -> None:

@@ -1,4 +1,4 @@
-import * as Validate from "./ProjectListInputs"
+import * as Validate from "./ProjectListInputsHandler"
 
 
 
@@ -17,6 +17,16 @@ class TasksListCallbacks {
 
     addTaskToBaseline = (taskId) => {
         this.tasksMessages.addTaskToBaseline(taskId)
+    }
+
+
+    hideSubTree = (taskId) => {
+        this.tasksMessages.hideSubTree(taskId)
+    }
+
+
+    showSubTree = (taskId) => {
+        this.tasksMessages.showSubTree(taskId)
     }
 
 }

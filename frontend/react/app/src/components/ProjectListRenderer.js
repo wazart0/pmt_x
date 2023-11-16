@@ -7,7 +7,7 @@ import { isString } from "./utils.js"
 
 
 
-export const ProjectListRenderer = ({state, columns, callbacks, showProjectDetails, hideChildren, showChildren, updateValueFromCell, addToBaseline}) => {
+export const ProjectListRenderer = ({state, columns, callbacks, showProjectDetails, updateValueFromCell}) => {
     const data = state.data
 
     function incTabs(wbs) {
@@ -27,7 +27,7 @@ export const ProjectListRenderer = ({state, columns, callbacks, showProjectDetai
             case 'id':
                 return <td rowSpan={number_of_baselines}>{project.id}</td>;
             case 'wbs':
-                return <td rowSpan={number_of_baselines}>{project.wbs ? project.wbs : <button onClick={() => callbacks.addTaskToBaseline(project.id)}>ADD</button>} {project.hasChildren ? project.hiddenChildren ? <button onClick={() => showChildren(project.id)}>[+]</button> : <button onClick={() => hideChildren(project.id)}>[-]</button> : null}</td>
+                return <td rowSpan={number_of_baselines}>{project.wbs ? project.wbs : <button onClick={() => callbacks.addTaskToBaseline(project.id)}>ADD</button>} {project.hasChildren ? project.hiddenChildren ? <button onClick={() => callbacks.showSubTree(project.id)}>[+]</button> : <button onClick={() => callbacks.hideSubTree(project.id)}>[-]</button> : null}</td>
             case 'name':
                 return <td rowSpan={number_of_baselines} style={{marginLeft: incTabs(project.wbs) + 'px'}}>{divEditable(project.id, column, project[column])}</td>
             case 'details':

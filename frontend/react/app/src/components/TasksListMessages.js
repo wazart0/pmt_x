@@ -23,6 +23,28 @@ class TasksListMessages extends WebSocket {
     }
 
 
+    hideSubTree = (taskId) => {
+        const msg = {
+            'name': 'hideSubTree',
+            'metadata': {
+                'taskId': taskId
+            }
+        }
+        this.send(JSON.stringify(msg))
+    }
+
+
+    showSubTree = (taskId) => {
+        const msg = {
+            'name': 'showSubTree',
+            'metadata': {
+                'taskId': taskId
+            }
+        }
+        this.send(JSON.stringify(msg))
+    }
+
+
 }
 
 

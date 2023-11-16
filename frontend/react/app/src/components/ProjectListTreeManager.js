@@ -6,11 +6,11 @@ import { isString } from "./utils.js"
 
 
 export function hideSubTree(data, id) { // assumption is that the data is sorted by ID/WBS, means parent is always before child in array
-    let subtree_IDs = [id];
-    data[id].hiddenChildren = true;
+    let subtree_IDs = [id]
+    data[id].hiddenChildren = true
     for (let index in data) {
         if (subtree_IDs.includes(data[index].parent)) {
-            data[index]['hidden'] = true;
+            data[index]['hidden'] = true
             if (data[index].hasChildren) subtree_IDs.push(data[index].id);
         }
     }
