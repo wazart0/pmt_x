@@ -27,9 +27,14 @@ export const ProjectListRenderer = ({state, columns, callbacks, showProjectDetai
             case 'id':
                 return <td rowSpan={number_of_baselines}>{project.id}</td>;
             case 'wbs':
-                return <td rowSpan={number_of_baselines}>{project.wbs ? project.wbs : <button onClick={() => callbacks.addTaskToBaseline(project.id)}>ADD</button>} {project.hasChildren ? project.hiddenChildren ? <button onClick={() => callbacks.showSubTree(project.id)}>[+]</button> : <button onClick={() => callbacks.hideSubTree(project.id)}>[-]</button> : null}</td>
+                return <td rowSpan={number_of_baselines}>
+                        {project.wbs ? project.wbs : <button onClick={() => callbacks.addTaskToBaseline(project.id)}>ADD</button>}
+                        {project.hasChildren ? project.hiddenChildren ? <button onClick={() => callbacks.showSubTree(project.id)}>[+]</button> : <button onClick={() => callbacks.hideSubTree(project.id)}>[-]</button> : null}
+                    </td>
             case 'name':
-                return <td rowSpan={number_of_baselines} style={{marginLeft: incTabs(project.wbs) + 'px'}}>{divEditable(project.id, column, project[column])}</td>
+                return <td rowSpan={number_of_baselines} style={{marginLeft: incTabs(project.wbs) + 'px'}}>
+                        {<div suppressContentEditableWarning='true' contentEditable='true' onBlur={(e) => callbacks.updateTaskName(e, project.id, project[column])}>{project[column]}</div>}
+                    </td>
             case 'details':
                 return <td rowSpan={number_of_baselines}><button onClick={() => showProjectDetails(project.id)}>OPEN</button></td>
             case 'description':

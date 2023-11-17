@@ -9,24 +9,29 @@ class TasksListCallbacks {
 
     
     addTask = (e) => {
-        if (!Validate.addTaskInputValidate(e.target.textContent)) return
-        this.tasksMessages.addTask(Validate.addTaskInputTransform(e.target.textContent))
+        if (!Validate.taskNameInputValidate(e.target.textContent)) { // add log
+            return
+        }
+        this.tasksMessages.addTask(Validate.taskNameInputTransform(e.target.textContent))
         e.target.textContent = '' //          why is it needed??!! 
     }
 
 
-    addTaskToBaseline = (taskId) => {
-        this.tasksMessages.addTaskToBaseline(taskId)
-    }
+    addTaskToBaseline = (taskId) => this.tasksMessages.addTaskToBaseline(taskId)
 
 
-    hideSubTree = (taskId) => {
-        this.tasksMessages.hideSubTree(taskId)
-    }
+    hideSubTree = (taskId) => this.tasksMessages.hideSubTree(taskId)
 
 
-    showSubTree = (taskId) => {
-        this.tasksMessages.showSubTree(taskId)
+    showSubTree = (taskId) => this.tasksMessages.showSubTree(taskId)
+
+
+    updateTaskName = (e, taskId, previousValue) => {
+        if (!Validate.taskNameInputValidate(e.target.textContent)) { // add log
+            e.target.textContent = previousValue
+            return
+        }
+        this.tasksMessages.updateTaskName(taskId, Validate.taskNameInputTransform(e.target.textContent))
     }
 
 }

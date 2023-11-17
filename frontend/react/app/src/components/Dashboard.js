@@ -57,8 +57,13 @@ class Dashboard extends Component {
 
     newTasksList = (e) => {
         let data = JSON.parse(e.data)
-        sortByWBS(data)
-        this.setState({ 'data': data })
+        if (e.data['error']) {
+            this.console.log(e.data['error'])
+            console.log(e.data['error'])
+            return
+        }
+        sortByWBS(data['data'])
+        this.setState({ 'data': data['data'] })
     }
 
 

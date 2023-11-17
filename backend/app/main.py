@@ -25,5 +25,6 @@ async def websocket_taskslist(websocket: WebSocket):
     print('client connected to taskslist ws')
     while True:
         data = await websocket.receive_text()
-        if taskslist.exec(json.loads(data)): continue
-        await websocket.send_text(json.dumps(taskslist.tasks_list.tasks))
+        result = taskslist.exec(json.loads(data))
+        if result: websocket.send_text(json.dumps({'error': result}))
+        await websocket.send_text(json.dumps({'data': taskslist.tasks_list.tasks}))

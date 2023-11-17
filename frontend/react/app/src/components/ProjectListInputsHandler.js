@@ -1,11 +1,11 @@
 
 
-export function addTaskInputValidate(input) {
+export function taskNameInputValidate(input) {
     if (!input.trim()) return false
     return true
 }
 
-export function addTaskInputTransform(input) {
+export function taskNameInputTransform(input) {
     return input.trim()
 }
 

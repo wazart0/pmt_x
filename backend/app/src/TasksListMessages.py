@@ -7,13 +7,13 @@ class TasksListMessages:
         pass
 
     def exec(self, message) -> None:
-        if 'name' not in message: return 1
+        if 'name' not in message: return f"Missing function name"
 
         method = None
         try:
             method = getattr(self.tasks_list, message['name'])
         except AttributeError:
-            return 1
+            return f"Class `{self.tasks_list.__class__}` does not implement `{message['name']}`"
             # raise NotImplementedError(f"Class `{self.tasks_list.__class__}` does not implement `{message['name']}`")
 
         if 'args' not in message: method()

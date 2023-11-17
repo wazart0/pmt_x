@@ -1,47 +1,56 @@
 
+
+
 class TasksListMessages extends WebSocket {
 
     addTask = (name) => {
-        const msg = {
+        this.send(JSON.stringify({
             'name': 'add_task',
             'args': {
                 'name': name
             }
-        }
-        this.send(JSON.stringify(msg))
+        }))
     }
 
 
     addTaskToBaseline = (taskId) => {
-        const msg = {
+        this.send(JSON.stringify({
             'name': 'add_task_to_baseline',
             'args': {
                 'task_id': taskId
             }
-        }
-        this.send(JSON.stringify(msg))
+        }))
     }
 
 
     hideSubTree = (taskId) => {
-        const msg = {
+        this.send(JSON.stringify({
             'name': 'hide_subtree',
             'args': {
                 'task_id': taskId
             }
-        }
-        this.send(JSON.stringify(msg))
+        }))
     }
 
 
     showSubTree = (taskId) => {
-        const msg = {
+        this.send(JSON.stringify({
             'name': 'show_subtree',
             'args': {
                 'task_id': taskId
             }
-        }
-        this.send(JSON.stringify(msg))
+        }))
+    }
+
+
+    updateTaskName = (taskId, name) => {
+        this.send(JSON.stringify({
+            'name': 'update_task_name',
+            'args': {
+                'task_id': taskId,
+                'name': name
+            }
+        }))
     }
 
 
