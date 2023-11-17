@@ -74,17 +74,5 @@ export function addTaskInputTransform(input) {
 //         this.setState({})
 //     }
 
-//     addToBaseline = (id) => {
-//         let no_of_new_siblings = 1
-//         for (let index in this.data) {
-//             if (this.data[index].parent === null && this.data[index].wbs) {
-//                 no_of_new_siblings = no_of_new_siblings + 1
-//             }
-//         }
-//         this.data[id].wbs = String(no_of_new_siblings)
-//         sortByWBS(this.data)
-//         resetIDs(this.data)
-//         console.log("TODO: Implement data update in DB.")
-//         this.setState({})
-//     }
+
     

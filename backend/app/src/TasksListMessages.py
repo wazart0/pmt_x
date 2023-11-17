@@ -7,25 +7,18 @@ class TasksListMessages:
         pass
 
     def exec(self, message) -> None:
-        if 'name' not in message: return
-        match message['name']:
-            case 'addTask':
-                self.tasks_list.add_task(message['metadata']['taskName'])
-                pass
+        if 'name' not in message: return 1
 
-            case 'addTaskToBaseline':
-                self.tasks_list.add_task_to_baseline(message['metadata']['taskId'])
+        method = None
+        try:
+            method = getattr(self.tasks_list, message['name'])
+        except AttributeError:
+            return 1
+            # raise NotImplementedError(f"Class `{self.tasks_list.__class__}` does not implement `{message['name']}`")
 
-            case 'addTaskToBaseline':
-                self.tasks_list.add_task_to_baseline(message['metadata']['taskId'])
+        if 'args' not in message: method()
+        else: method(**message['args'])
 
-            case 'hideSubTree':
-                self.tasks_list.hide_subtree(message['metadata']['taskId'])
+        return 0
 
-            case 'showSubTree':
-                self.tasks_list.show_subtree(message['metadata']['taskId'])
 
-            case _:
-                pass
-
-    

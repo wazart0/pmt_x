@@ -3,9 +3,9 @@ class TasksListMessages extends WebSocket {
 
     addTask = (name) => {
         const msg = {
-            'name': 'addTask',
-            'metadata': {
-                'taskName': name
+            'name': 'add_task',
+            'args': {
+                'name': name
             }
         }
         this.send(JSON.stringify(msg))
@@ -14,9 +14,9 @@ class TasksListMessages extends WebSocket {
 
     addTaskToBaseline = (taskId) => {
         const msg = {
-            'name': 'addTaskToBaseline',
-            'metadata': {
-                'taskId': taskId
+            'name': 'add_task_to_baseline',
+            'args': {
+                'task_id': taskId
             }
         }
         this.send(JSON.stringify(msg))
@@ -25,9 +25,9 @@ class TasksListMessages extends WebSocket {
 
     hideSubTree = (taskId) => {
         const msg = {
-            'name': 'hideSubTree',
-            'metadata': {
-                'taskId': taskId
+            'name': 'hide_subtree',
+            'args': {
+                'task_id': taskId
             }
         }
         this.send(JSON.stringify(msg))
@@ -36,9 +36,9 @@ class TasksListMessages extends WebSocket {
 
     showSubTree = (taskId) => {
         const msg = {
-            'name': 'showSubTree',
-            'metadata': {
-                'taskId': taskId
+            'name': 'show_subtree',
+            'args': {
+                'task_id': taskId
             }
         }
         this.send(JSON.stringify(msg))
@@ -52,26 +52,6 @@ class TasksListMessages extends WebSocket {
 export default TasksListMessages
 
 
-// class ProjectList extends Component {
-//     constructor({state, columns, showProjectDetails}) {
-//         super()
-
-//         this.data = state.data
-//         this.columns = columns
-
-//         this.showProjectDetails = showProjectDetails
-//     }
-  
-
-//     hideChildren = (id) => {
-//         hideSubTree(this.data, id)
-//         this.setState({})
-//     }
-
-//     showChildren = (id) => {
-//         showSubTree(this.data, id)
-//         this.setState({})
-//     }
 
 //     updateValueFromCell = (e, id, column) => {
 //         e.target.textContent = e.target.textContent.trim()

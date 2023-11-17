@@ -13,6 +13,10 @@ class TasksList(object):
         for index in range(len(self.tasks)): 
             if task_id == self.tasks[index]['id']: return index
         return None
+    
+
+    def get_tasks(self):
+        return self.tasks
 
 
     def add_task(self, name) -> None:

@@ -82,7 +82,7 @@ class Dashboard extends Component {
     render() {
         return (
             <div className="mainContainer">
-                <button onClick={() => this.sendMessage({})}>GET DATA</button>
+                <button onClick={() => this.sendMessage({'name': 'get_tasks'})}>GET DATA</button>
                 {/* <div display='flex' flexDirection='row'> */}
                     {/* <ProjectList state={this.state} columns={this.columns} showProjectDetails={this.showProjectDetails} /> */}
                     <ProjectListRenderer state={this.state} columns={this.columns} callbacks={this.tasksListCallbacks} />
