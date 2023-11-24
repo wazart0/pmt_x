@@ -39,6 +39,10 @@ class TasksList(object):
         # self.recreate_id2index_map()
 
 
+    def update_task_name(self, task_id, name):
+        self.tasks[self.index(task_id)]['name'] = name
+
+
     def add_task_to_baseline(self, task_id, baseline_id = None) -> None:
         no_of_siblings = 1
         for task in self.tasks:
@@ -91,3 +95,4 @@ class TasksList(object):
         for task in self.tasks: 
             self.id2index_map[task['id']] = index
             index += 1
+

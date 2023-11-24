@@ -6,4 +6,7 @@ python-dateutil
 pytz
 pandas
 websockets
+SQLAlchemy
+psycopg2
+# sqlmodel
 # pydgraph

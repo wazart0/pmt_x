@@ -1,14 +1,13 @@
-import React, { Component, Fragment } from "react"
-import { addProject, sortByWBS, resetIDs } from "./ProjectVars.js"
-import { hideSubTree, showSubTree, changeParent, arePredecesorsLooped } from "./ProjectListTreeManager.js"
+import React, { Fragment } from "react"
+// import { addProject, sortByWBS, resetIDs } from "./ProjectVars.js"
+// import { hideSubTree, showSubTree, changeParent, arePredecesorsLooped } from "./ProjectListTreeManager.js"
 // import Modal from "./Modal"
 import { isString } from "./utils.js"
 
 
 
 
-export const ProjectListRenderer = ({state, columns, callbacks, showProjectDetails, updateValueFromCell}) => {
-    const data = state.data
+export const ProjectListRenderer = ({dashboard, columns, callbacks, showProjectDetails, updateValueFromCell}) => {
 
     function incTabs(wbs) {
         // let doc = document.getElementById("td"); TODO: check how to retireve left padding from CSS (now it is hardcoded: 5)
@@ -18,38 +17,82 @@ export const ProjectListRenderer = ({state, columns, callbacks, showProjectDetai
         return String(5 + 25 * amount.length)
     }
 
-    function divEditable(id, column, value) {
-        return <div suppressContentEditableWarning='true' contentEditable='true' onBlur={(e) => updateValueFromCell(e, id, column)}>{value}</div>
-    }
-
-    function td(project, number_of_baselines, column) {
+    function td(index, taskId, number_of_baselines, column) {
         switch (column) {
             case 'id':
-                return <td rowSpan={number_of_baselines}>{project.id}</td>;
+                return <td rowSpan={number_of_baselines}>{index}</td>
+
             case 'wbs':
                 return <td rowSpan={number_of_baselines}>
-                        {project.wbs ? project.wbs : <button onClick={() => callbacks.addTaskToBaseline(project.id)}>ADD</button>}
-                        {project.hasChildren ? project.hiddenChildren ? <button onClick={() => callbacks.showSubTree(project.id)}>[+]</button> : <button onClick={() => callbacks.hideSubTree(project.id)}>[-]</button> : null}
-                    </td>
+                    {dashboard['baseline'][taskId] ? dashboard['baseline'][taskId][column] : <button onClick={() => callbacks.addTaskToBaseline(taskId)}>ADD</button>}
+                        {/* {project.wbs ? project.wbs : <button onClick={() => callbacks.addTaskToBaseline(index)}>ADD</button>}
+                        {project.hasChildren ? project.hiddenChildren ? <button onClick={() => callbacks.showSubTree(index)}>[+]</button> : <button onClick={() => callbacks.hideSubTree(index)}>[-]</button> : null} */}
+                </td>
+
             case 'name':
-                return <td rowSpan={number_of_baselines} style={{marginLeft: incTabs(project.wbs) + 'px'}}>
-                        {<div suppressContentEditableWarning='true' contentEditable='true' onBlur={(e) => callbacks.updateTaskName(e, project.id, project[column])}>{project[column]}</div>}
-                    </td>
+                return <td rowSpan={number_of_baselines} style={{marginLeft: incTabs('') + 'px'}}>
+                    <div 
+                        suppressContentEditableWarning='true' 
+                        contentEditable='true' 
+                        onBlur={(e) => callbacks.updateTaskName(e, taskId)}>
+                            {dashboard['tasks'][taskId][column]}
+                    </div>
+                </td>
+
             case 'details':
-                return <td rowSpan={number_of_baselines}><button onClick={() => showProjectDetails(project.id)}>OPEN</button></td>
+                return <td rowSpan={number_of_baselines}>
+                    <button onClick={() => showProjectDetails(taskId)}>OPEN</button>
+                </td>
+
             case 'description':
-                return <td rowSpan={number_of_baselines}>{divEditable(project.id, column, project[column])}</td>
+                return <td rowSpan={number_of_baselines}>
+                    <div 
+                        suppressContentEditableWarning='true' 
+                        contentEditable='true' 
+                        onBlur={(e) => callbacks.updateTaskDescription(e, taskId)}>{
+                            dashboard['tasks'][taskId]['doc'][column] ? dashboard['tasks'][taskId]['doc'][column] : ''
+                    }</div>
+                </td>
     
             case 'worktime':
-                return <td style={{textAlign: 'center'}}>{divEditable(project.id, column, project[column])}</td>
+                return <td style={{textAlign: 'center'}}>
+                    <div 
+                        suppressContentEditableWarning='true' 
+                        contentEditable='true' 
+                        onBlur={(e) => callbacks.updateWorktime(e, taskId)}>{
+                            dashboard['baseline'][taskId] ? dashboard['baseline'][taskId][column] : ''
+                    }</div>
+                </td>
+
             case 'parent':
-                return <td style={{textAlign: 'center'}}>{divEditable(project.id, column, project[column])}</td>
+                return <td style={{textAlign: 'center'}}>
+                    <div 
+                        suppressContentEditableWarning='true' 
+                        contentEditable='true' 
+                        onBlur={(e) => callbacks.updateParent(e, index)}>{
+                            dashboard['baseline'][taskId] ? dashboard['baseline'][taskId][column] : ''
+                    }</div>
+                </td>
+
             case 'predecessors':
-                return <td>{divEditable(project.id, column, project[column])}</td>
+                return <td>
+                    <div 
+                        suppressContentEditableWarning='true' 
+                        contentEditable='true' 
+                        onBlur={(e) => callbacks.updatePredecessors(e, index)}>{
+                            dashboard['baseline'][taskId] ? dashboard['baseline'][taskId][column] : ''
+                    }</div>                    
+                </td>
+
             case 'start':
-                return <td style={{textAlign: 'center'}}>{project.start}</td>
+                return <td style={{textAlign: 'center'}}>{
+                    dashboard['baseline'][taskId] ? dashboard['baseline'][taskId][column] : ''
+                }</td>
+
             case 'finish':
-                return <td style={{textAlign: 'center'}}>{project.finish}</td>
+                return <td style={{textAlign: 'center'}}>{
+                    dashboard['baseline'][taskId] ? dashboard['baseline'][taskId][column] : ''
+                }</td>
             
             default:
                 return <td></td>
@@ -59,7 +102,7 @@ export const ProjectListRenderer = ({state, columns, callbacks, showProjectDetai
     function tdLast(column) {
         switch (column) {
             case 'id': 
-                return <td>{data.length}</td>
+                return <td></td>
             case 'name': 
                 return <td><div suppressContentEditableWarning='true' contentEditable='true' onBlur={callbacks.addTask}>{null}</div></td>
             default: 
@@ -98,20 +141,20 @@ export const ProjectListRenderer = ({state, columns, callbacks, showProjectDetai
                     </tr>
                 </thead>
                 <tbody>
-                    {data.map((project) => {
-                        if (project.hidden) return (null);
-                        let number_of_baselines = project.baselines.length + 1;
+                    {dashboard['tasksList'].map((taskId, index) => {
+                        if (dashboard['userView']['doc']['tasks'][taskId]['hidden']) return (null);
+                        let number_of_baselines = Object.keys(dashboard['baselines']).length + 1;
                         return (
                             <Fragment>
-                                <tr key={project.id}>
+                                <tr key={index}>
                                     {Object.keys(columns).map(column => (
-                                        td(project, number_of_baselines, column)
+                                        td(index, taskId, number_of_baselines, column)
                                     ))}
                                 </tr>
-                                {project.baselines.map(baseline => (
+                                {Object.keys(dashboard['baselines']).map(baselineId => (
                                     <tr style={{fontSize: '75%'}}>
                                         {Object.keys(columns).map(column => (
-                                            tdBaseline(baseline, column)
+                                            tdBaseline(baselineId, column)
                                         ))}
                                     </tr>
                                 ))}

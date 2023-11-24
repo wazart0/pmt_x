@@ -3,38 +3,50 @@ import * as Validate from "./ProjectListInputsHandler"
 
 
 class TasksListCallbacks {
-    constructor(tasksMessages) {
+    constructor(tasksMessages, tasks) {
         this.tasksMessages = tasksMessages
+        this.tasks = tasks
     }
 
     
     addTask = (e) => {
-        if (!Validate.taskNameInputValidate(e.target.textContent)) { // add log
-            return
-        }
-        this.tasksMessages.addTask(Validate.taskNameInputTransform(e.target.textContent))
+        e.target.textContent = e.target.textContent.trim()
+        if (e.target.textContent !== '') 
+            this.tasksMessages['websocket'].addTask(e.target.textContent)
         e.target.textContent = '' //          why is it needed??!! 
     }
 
 
-    addTaskToBaseline = (taskId) => this.tasksMessages.addTaskToBaseline(taskId)
+    addTaskToBaseline = (index) => this.tasksMessages['websocket'].addTaskToBaseline(this.tasks.data[index]['id'])
 
 
-    hideSubTree = (taskId) => this.tasksMessages.hideSubTree(taskId)
+    hideSubTree = (index) => this.tasksMessages['websocket'].hideSubTree(this.tasks.data[index]['id'])
 
 
-    showSubTree = (taskId) => this.tasksMessages.showSubTree(taskId)
+    showSubTree = (index) => this.tasksMessages['websocket'].showSubTree(this.tasks.data[index]['id'])
 
 
-    updateTaskName = (e, taskId, previousValue) => {
-        if (!Validate.taskNameInputValidate(e.target.textContent)) { // add log
-            e.target.textContent = previousValue
-            return
-        }
-        this.tasksMessages.updateTaskName(taskId, Validate.taskNameInputTransform(e.target.textContent))
+    updateTaskName = (e, index) => {
+        e.target.textContent = e.target.textContent.trim()
+        if (e.target.textContent === String(this.tasks.data[index]['name'])) return
+        const r = Validate.taskNameInputValidate(e.target.textContent, this.tasks.data)
+
+        if (r) this.tasksMessages['websocket'].updateTaskName(this.tasks.data[index]['id'], e.target.textContent)
+        e.target.textContent = this.tasks.data[index]['name']
+    }
+
+
+    changeParent = (e, index) => {
+        e.target.textContent = e.target.textContent.trim()
+        if (e.target.textContent === String(this.tasks.data[index]['parent'])) return
+        const r = Validate.changeParentInputValidate(index, e.target.textContent, this.tasks.data)
+
+        if (r) this.tasksMessages['websocket'].changeParent(this.tasks.data[index]['id'], e.target.textContent)
+        e.target.textContent = this.tasks.data[index]['parent']
     }
 
 }
+
 
 export default TasksListCallbacks
 
@@ -42,13 +54,6 @@ export default TasksListCallbacks
 //         e.target.textContent = e.target.textContent.trim()
 //         if (e.target.textContent === String(this.data[id][column])) return
 //         switch (column) {
-//             case 'name':
-//                 if (!e.target.textContent) {
-//                     e.target.textContent = this.data[id][column]
-//                     return
-//                 }
-//                 this.data[id][column] = e.target.textContent
-//                 break
 
 //             case 'parent':
 //                 let result = changeParent(this.data, id, e.target.textContent !== '' ? Number(e.target.textContent) : null)

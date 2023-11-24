@@ -1,12 +1,26 @@
 
 
 export function taskNameInputValidate(input) {
-    if (!input.trim()) return false
     return true
 }
 
-export function taskNameInputTransform(input) {
-    return input.trim()
+
+// export function taskNameInputTransform(input) {
+//     return input
+// }
+
+
+export function changeParentInputValidate(index, input, tasks) {
+    const parentIndex = input !== '' ? Number(input) : null
+
+    if (
+        (parentIndex !== null && !Number.isInteger(parentIndex)) ||
+        index === parentIndex || parentIndex < 0 || parentIndex >= tasks.length ||
+        tasks[parentIndex]['id'] === tasks[index]['parent'] ||
+        tasks[parentIndex]['wbs'] === null || tasks[parentIndex]['wbs'] === '' // TODO:  reimplement: validate if parent baseline is not null
+    ) return false
+
+    return true
 }
 
 

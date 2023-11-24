@@ -54,6 +54,37 @@ class TasksListMessages extends WebSocket {
     }
 
 
+    changeParent = (taskId, parent) => {
+        this.send(JSON.stringify({
+            'name': 'change_parent',
+            'args': {
+                'task_id': taskId,
+                'parent': parent
+            }
+        }))
+    }
+
+
+    getViews = (userId) => {
+        this.send(JSON.stringify({
+            'name': 'get_views',
+            'args': {
+                'user_id': userId
+            }
+        }))
+    }
+
+
+    getDashboard = (userId, viewId) => {
+        this.send(JSON.stringify({
+            'name': 'get_dashboard',
+            'args': {
+                'user_id': userId,
+                'view_id': viewId
+            }
+        }))
+    }
+
 }
 
 
