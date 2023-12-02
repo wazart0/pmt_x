@@ -20,7 +20,13 @@ def create_query_statement_from_filter(type, filter, id_array = []):
     else: return None
     
     match = re.search(regex, filter)
-    if not match: return None
+
+    if match is None:
+        if type == Baseline and re.search(r'''baseline\s*\[\s*~\s*\]''', filter) is not None:
+            return select(type)
+        if type == Task and re.search(r'''task\s*\[\s*~\s*\]''', filter) is not None:
+            return select(type)
+        return None
 
     names_contain = []
     names = []
@@ -136,6 +142,7 @@ class TasksListManager(object):
                 for r, in session.execute(baseline_query):
                     result['baselines'].update({str(r.id): r.to_dict()})
                     tasks_ids += list(r.tasks.keys())
+
 
             tasks_query = create_query_statement_from_filter(Task, result['userView']['filter'], tasks_ids)
             if tasks_query is not None:

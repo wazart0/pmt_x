@@ -58,7 +58,7 @@ export const ViewComponent = ({viewList, dashboard, selectViewCallback, createVi
                     viewName
             }</div>
             &nbsp;
-            <button onClick={createViewCallback}>SAVE VIEW</button>
+            <button onClick={() => createViewCallback(viewName)}>SAVE VIEW</button>
         </div>
     )
 }
@@ -181,8 +181,6 @@ class Dashboard extends Component {
     constructor({console}) {
         super()
         this.state = {}
-
-        this.new_view_name_field = 'default'
 
         this.userList = {}
         this.userCurrentId = null
@@ -307,13 +305,13 @@ class Dashboard extends Component {
     }
 
 
-    createNewView = () => {
+    createNewView = (viewName) => {
         if (this.userCurrentId === null) return
         this.sendMessage({
             'name': 'upsert_view', 
             'args': {
                 'user_id': this.userCurrentId, 
-                'name': this.new_view_name_field, 
+                'name': viewName, 
                 'filter': ''
             }})
     }
