@@ -2,6 +2,8 @@
 # from typing import Optionalfrom 
 # from typing import Dict
 from uuid import UUID
+import uuid
+import re
 from typing import Sequence
 from datetime import datetime
 
@@ -16,6 +18,12 @@ from sqlalchemy.orm import mapped_column, DeclarativeBase
 def _newid():
     import uuid
     return str(uuid.uuid4())
+
+
+def _isid(id):
+    UUID_PATTERN = re.compile(r'^[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}$', re.IGNORECASE)
+    return bool(UUID_PATTERN.match(id))
+    
 
 
 class Base(DeclarativeBase):

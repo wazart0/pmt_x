@@ -161,6 +161,18 @@ class Tasks {
         this.userView['doc']['primaryBaselineId'] = id === 'None' ? null : id
         this.rerender()
     }
+
+    insertTask = (task) => {
+        if (this.userView['doc'] === undefined) this.userView['doc'] = {}
+        if (this.userView['doc']['tasks'] === undefined) this.userView['doc']['tasks'] = {}
+        this.tasks[task['id']] = task
+        this.userView['doc']['tasks'][task['id']] = {
+            'hidden': false,
+            'hasChildren': false,
+            'hiddenChildren': false
+        }
+        this.tasksList.push(task['id'])
+    }
 }
 
 
@@ -254,6 +266,10 @@ class Dashboard extends Component {
                 this.dashboardData['tasksList'] = Object.keys(this.dashboardData['tasks'])
                 break
 
+                case 'task':
+                    this.dashboardData.insertTask(data['data'])
+                    break
+
             case 'baselines':
                 Object.keys(data['data']).forEach((key) => {
                     this.dashboardData['baselines'][key] = data['data'][key]
@@ -275,7 +291,7 @@ class Dashboard extends Component {
 
 
     showPrimaryBaseline = (e) => {
-        this.dashboardData['userView']['doc']['primaryBaseline'] = e.target.value ? e.target.value !== 'null' : null
+        this.dashboardData.userView['doc']['primaryBaseline'] = e.target.value ? e.target.value !== 'null' : null
         this.setState({})
     }
 
@@ -283,10 +299,10 @@ class Dashboard extends Component {
     applyNewFilter = (filter) => {
         if (this.dashboardData.userView['id'] === undefined) return
         filter = filter.trim()
-        if (filter === String(this.dashboardData['userView']['filter'])) return
-        this.dashboardData['userView']['filter'] = filter
-        this.sendMessage({'name': 'upsert_view', 'args': {'id': this.dashboardData.viewId, 'filter': this.dashboardData['userView']['filter']}})
-        this.tasksMessages.getDashboard(this.userCurrentId, this.dashboardData['viewId'])
+        if (filter === String(this.dashboardData.userView['filter'])) return
+        this.dashboardData.userView['filter'] = filter
+        this.sendMessage({'name': 'upsert_view', 'args': {'id': this.dashboardData.userView['id'], 'filter': this.dashboardData.userView['filter']}})
+        this.tasksMessages.getDashboard(this.userCurrentId, this.dashboardData.userView['id'])
     }
 
 

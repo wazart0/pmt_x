@@ -5,10 +5,43 @@ import logging
 import re
 
 
-from src.models import _newid, User, Task, Baseline, UserView
+from src.models import _isid, _newid, User, Task, Baseline, UserView
 
 
 logger = logging.getLogger()
+
+
+
+def create_query_statement_from_filter(type, filter, id_array = []):
+    if type == Baseline:
+        regex = r'''baseline\s*\[\s*((~?(\"|')[\- a-zA-Z0-9]+(\"|')|[\-a-zA-Z0-9]+)\s*,\s*)*(~?(\"|')[\- a-zA-Z0-9]+(\"|')|[\-a-zA-Z0-9]+)\s*\]'''
+    elif type == Task:
+        regex = r'''task\s*\[\s*((~?(\"|')[\- a-zA-Z0-9]+(\"|')|[\-a-zA-Z0-9]+)\s*,\s*)*(~?(\"|')[\- a-zA-Z0-9]+(\"|')|[\-a-zA-Z0-9]+)\s*\]'''
+    else: return None
+    
+    match = re.search(regex, filter)
+    if not match: return None
+
+    names_contain = []
+    names = []
+    ids = id_array
+
+    params = r'''\[\s*((~?(\"|')[\- a-zA-Z0-9]+(\"|')|[\-a-zA-Z0-9]+)\s*,\s*)*(~?(\"|')[\- a-zA-Z0-9]+(\"|')|[\-a-zA-Z0-9]+)\s*\]'''
+    match = re.search(params, match.group())
+    inputs = re.split(r'\s*,\s*', re.sub(r'[\[\]]', '', match.group()))
+    for input in inputs:
+        if re.search(r'^~', input):
+            names_contain.append('%' + re.sub(r'[\'\"\~]', '', input) + '%')
+            continue
+        if re.search(r'^[\"\']', input):
+            names.append(re.sub(r'[\'\"]', '', input))
+            continue
+        if _isid(input):
+            ids.append(input)
+
+    return select(type).where(or_(type.id.in_(ids), type.name.in_(names))) if \
+            len(names_contain) == 0 else \
+            select(type).where(or_(type.id.in_(ids), type.name.in_(names), type.name.ilike(names_contain[0]))) # TODO: SERVE MORE THAN ONE TASK name contain
 
 
 
@@ -16,16 +49,6 @@ class TasksListManager(object):
     def __init__(self, engine) -> None:
         self.engine = engine
         self.Session = sessionmaker(engine)
-
-    # def reinit_tasks(self, tasks) -> None:
-    #     self.tasks = tasks
-        # self.recreate_id2index_map()
-
-
-    # def index(self, task_id) -> int:
-    #     for index in range(len(self.tasks)): 
-    #         if task_id == self.tasks[index]['id']: return index
-    #     return None
 
 
     def insert(self, table, **args) -> dict:
@@ -55,34 +78,16 @@ class TasksListManager(object):
 
 
     def upsert_view(self, **args) -> dict:
-        return { 'type': 'views', 'data': self.upsert(UserView, **args) }
+        return { 'type': 'view', 'data': self.upsert(UserView, **args) }
 
 
     def upsert_task(self, **args) -> dict:
-        return { 'type': 'tasks', 'data': self.upsert(Task, **args) }
+        return { 'type': 'task', 'data': self.upsert(Task, **args) }
 
 
     def upsert_baseline(self, **args) -> dict:
-        return { 'type': 'baselines', 'data': self.upsert(Baseline, **args) }
+        return { 'type': 'baseline', 'data': self.upsert(Baseline, **args) }
 
-        # self.tasks.append({
-        #     'id': len(self.tasks),
-        #     'name': name,
-        #     'description': None,
-        #     'baselines': [],
-
-        #     'wbs': None,
-        #     'worktime': None,
-        #     'start': None,
-        #     'finish': None,
-        #     'parent': None,
-
-        #     'hidden': False,
-        #     'hasChildren': False,
-        #     'hiddenChildren': False
-        # })
-        # self.recreate_id2index_map()
-    
 
 
     def get_users(self):
@@ -98,7 +103,7 @@ class TasksListManager(object):
         result = {}
         with self.Session() as session:
             for id, name, in session.execute(
-                select(UserView.id, UserView.name).where(UserView.user_id == user_id)
+                select(UserView.id, UserView.name).where(UserView.user_id == user_id).order_by(UserView.update_date.desc())
             ):
                 result[str(id)] = name
 
@@ -123,24 +128,19 @@ class TasksListManager(object):
                     result['tasks'].update({str(r.id): r.to_dict()})
                 return { 'type': 'dashboard', 'data': result }
             
-            baseline_regex = r'''baseline\s*\[\s*((~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+)\s*,\s*)*(~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+)\s*\]'''
-            task_regex = r'''task\s*\[\s*((~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+)\s*,\s*)*(~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+)\s*\]'''
-            # or_regex = r''' or '''
 
-            baseline_match = re.search(baseline_regex, result['userView']['filter'])
-            task_match = re.search(task_regex, result['userView']['filter'])
-            logger.debug(baseline_match)
-            logger.debug(task_match)
-            # logger.debug(str(task_match))
+            tasks_ids = []
 
-            if task_match:
-                params = r'''\[\s*((~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+)\s*,\s*)*(~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+)\s*\]'''
-                task_match = re.search(params, task_match.group())
-                logger.debug(task_match)
-                params = r'''~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+'''
-                tasks_inputs = re.search(params, task_match.group())
-                logger.debug(tasks_inputs)
-                
+            baseline_query = create_query_statement_from_filter(Baseline, result['userView']['filter'])
+            if baseline_query is not None:
+                for r, in session.execute(baseline_query):
+                    result['baselines'].update({str(r.id): r.to_dict()})
+                    tasks_ids += list(r.tasks.keys())
+
+            tasks_query = create_query_statement_from_filter(Task, result['userView']['filter'], tasks_ids)
+            if tasks_query is not None:
+                for r, in session.execute(tasks_query):
+                    result['tasks'].update({str(r.id): r.to_dict()})
 
         return { 'type': 'dashboard', 'data': result }
 
