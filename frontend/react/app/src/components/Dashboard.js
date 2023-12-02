@@ -235,6 +235,7 @@ class Dashboard extends Component {
 
             case 'userList':
                 this.userList = data['data']
+                this.dashboardData.init()
                 if (Object.keys(data['data'])[0]) {
                     this.userCurrentId = Object.keys(data['data'])[0]
                     this.tasksMessages.getViews(this.userCurrentId)

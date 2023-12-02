@@ -45,7 +45,7 @@ export const ProjectListRenderer = ({dashboard, columns, callbacks, showProjectD
 
             case 'name':
                 return <td key={column} rowSpan={number_of_baselines} style={{marginLeft: incTabs('') + 'px'}}>
-                    <div 
+                    <div key={column}
                         suppressContentEditableWarning='true' 
                         contentEditable='true' 
                         onBlur={(e) => callbacks.updateTaskName(e, taskId)}>
@@ -60,7 +60,7 @@ export const ProjectListRenderer = ({dashboard, columns, callbacks, showProjectD
 
             case 'description':
                 return <td key={column} rowSpan={number_of_baselines}>
-                    <div 
+                    <div key={column}
                         suppressContentEditableWarning='true' 
                         contentEditable='true' 
                         onBlur={(e) => callbacks.updateTaskDescription(e, taskId)}>{
@@ -70,7 +70,7 @@ export const ProjectListRenderer = ({dashboard, columns, callbacks, showProjectD
     
             case 'worktime':
                 return <td key={column} style={{textAlign: 'center'}}>
-                    <div 
+                    <div key={column}
                         suppressContentEditableWarning='true' 
                         contentEditable='true' 
                         onBlur={(e) => callbacks.updateWorktime(e, taskId)}>{
@@ -80,7 +80,7 @@ export const ProjectListRenderer = ({dashboard, columns, callbacks, showProjectD
 
             case 'parent':
                 return <td key={column} style={{textAlign: 'center'}}>
-                    <div 
+                    <div key={column}
                         suppressContentEditableWarning='true' 
                         contentEditable='true' 
                         onBlur={(e) => callbacks.updateParent(e, index)}>{
@@ -90,7 +90,7 @@ export const ProjectListRenderer = ({dashboard, columns, callbacks, showProjectD
 
             case 'predecessors':
                 return <td key={column}>
-                    <div 
+                    <div key={column}
                         suppressContentEditableWarning='true' 
                         contentEditable='true' 
                         onBlur={(e) => callbacks.updatePredecessors(e, index)}>{
@@ -109,7 +109,7 @@ export const ProjectListRenderer = ({dashboard, columns, callbacks, showProjectD
                 }</td>
             
             default:
-                return <td></td>
+                return <td key={column}></td>
         }
     }
 
@@ -118,7 +118,7 @@ export const ProjectListRenderer = ({dashboard, columns, callbacks, showProjectD
             case 'id': 
                 return <td key={column}></td>
             case 'name': 
-                return <td key={column}><div suppressContentEditableWarning='true' contentEditable='true' onBlur={callbacks.addTask}>{null}</div></td>
+                return <td key={column}><div key={column} suppressContentEditableWarning='true' contentEditable='true' onBlur={callbacks.addTask}>{null}</div></td>
             default: 
                 return <td key={column}></td>
         }
@@ -160,7 +160,7 @@ export const ProjectListRenderer = ({dashboard, columns, callbacks, showProjectD
                     let numberOfBaselines = Object.keys(dashboard.baselines).length
                     if (!dashboard.defaultBaselineId) numberOfBaselines += 1
                     return (
-                        <Fragment>
+                        <Fragment key={index}>
                             <tr key={index}>
                                 {Object.keys(columns).map(column => (
                                     td(index, taskId, numberOfBaselines, column)
