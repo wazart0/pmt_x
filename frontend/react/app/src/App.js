@@ -1,16 +1,6 @@
 import React, { Component } from "react"
 import Dashboard from "./components/Dashboard"
-import TasksListMessages from "./components/TasksListMessages"
 
-
-
-var messagingDashboard = {
-    'websocket': new TasksListMessages("ws://localhost:8000/taskslist")
-}
-
-messagingDashboard['websocket'].onclose = () => {
-    messagingDashboard['websocket'] = new TasksListMessages("ws://localhost:8000/taskslist")
-}
 
 
 
@@ -59,7 +49,7 @@ class App extends Component {
         return (
             // <div>{menubar}</div>
             <div className="mainContainer">
-                <Dashboard messaging={messagingDashboard} console={this.console} />
+                <Dashboard console={this.console} />
             </div>
         )
     }

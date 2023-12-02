@@ -1,10 +1,11 @@
-import functools
-from sqlalchemy import select, insert, inspect, and_
+from sqlalchemy import insert, select, update, and_, or_
+# from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import sessionmaker
 import logging
-import uuid
+import re
 
-from src.models import Task, Baseline, UserView
+
+from src.models import _newid, User, Task, Baseline, UserView
 
 
 logger = logging.getLogger()
@@ -25,86 +26,44 @@ class TasksListManager(object):
     #     for index in range(len(self.tasks)): 
     #         if task_id == self.tasks[index]['id']: return index
     #     return None
-    
 
 
-    def get_users(self):
-        result = {}
+    def insert(self, table, **args) -> dict:
+        args['id'] = _newid()
         with self.Session() as session:
-            for r, in session.execute(
-                select(UserView.user_id)
-            ):
-                result[str(r)] = { 'username': 'xxx' }
-
-        return { 'type': 'userList', 'data': result }
-
-    
-    
-    def add_view(self, user_id, view_name = 'default', doc = { 'filter': None }):
-        with self.Session() as session:
-            user_view = UserView(
-                id = uuid.uuid4(),
-                user_id = user_id,
-                name = view_name,
-                doc = doc         
-            )
-            session.add(user_view)
+            r, = session.execute(
+                insert(table).returning(table).values(**args)
+            ).one()
             session.commit()
-            
-        return { 'type': None }
-    
+            result = r.to_dict()
+        return result
 
-    
-    def get_views(self, user_id):
-        result = {}
+
+    def update(self, table, id, **args) -> dict:
         with self.Session() as session:
-            for id, name, in session.execute(
-                select(UserView.id, UserView.name).where(UserView.user_id == user_id)
-            ):
-                result[str(id)] = { 'name': name }
-
-        return { 'type': 'userViewList', 'data': result }
-
-
-
-    def get_dashboard(self, user_id, view_id):
-        result = {
-            'tasks': {},
-            'baseline': {},
-            'baselines': {},
-            'userView': {}
-        }
-        with self.Session() as session:
-
-            if view_id is not None: user_view = session.get(UserView, view_id)
-            else: user_view = session.execute(select(UserView).where(and_(UserView.user_id == user_id, UserView.name == 'default'))).first()
-            if user_view is None: return { 'error': f'View `{view_id}` doesn`t exist'}
-            result['userView'] = user_view.to_dict()
-
-            if not result['userView'][view_id]['doc'] or \
-                result['userView'][view_id]['doc']['filter'] in [None, '']:
-                for r, in session.execute(select(Task)): # TODO: implement pagination
-                    result['tasks'].update(r.to_dict())
-            else:
-                pass
-
-        return { 'type': 'dashboard', 'data': result }
-
-
-
-    def add_task(self, name) -> None:
-        with self.Session() as session:
-            task = Task(
-                id = uuid.uuid4(),
-                name = name,
-                doc = {}
-            )
-            session.add(task)
+            r, = session.execute(
+                update(table).returning(table).values(**args).where(table.id==id)
+            ).one()
             session.commit()
-            result = task.to_dict()
-        
-        logger.debug(result)
-        return { 'type': 'tasks', 'data': result }
+            result = r.to_dict()
+        return result
+
+
+    def upsert(self, table, **args) -> dict:
+        if 'id' in args: return self.update(table, **args)
+        return  self.insert(table, **args)
+
+
+    def upsert_view(self, **args) -> dict:
+        return { 'type': 'views', 'data': self.upsert(UserView, **args) }
+
+
+    def upsert_task(self, **args) -> dict:
+        return { 'type': 'tasks', 'data': self.upsert(Task, **args) }
+
+
+    def upsert_baseline(self, **args) -> dict:
+        return { 'type': 'baselines', 'data': self.upsert(Baseline, **args) }
 
         # self.tasks.append({
         #     'id': len(self.tasks),
@@ -123,11 +82,68 @@ class TasksListManager(object):
         #     'hiddenChildren': False
         # })
         # self.recreate_id2index_map()
+    
 
 
+    def get_users(self):
+        result = {}
+        with self.Session() as session:
+            for r, in session.execute(select(User)):
+                result[str(r.id)] = { 'username': r.name }
+        return { 'type': 'userList', 'data': result }
+    
 
-    # def update_task_name(self, task_id, name):
-    #     self.tasks[self.index(task_id)]['name'] = name
+    
+    def get_views(self, user_id):
+        result = {}
+        with self.Session() as session:
+            for id, name, in session.execute(
+                select(UserView.id, UserView.name).where(UserView.user_id == user_id)
+            ):
+                result[str(id)] = name
+
+        return { 'type': 'userViewList', 'data': result }
+
+
+    def get_dashboard(self, user_id, view_id):
+        result = {
+            'tasks': {},
+            'baselines': {},
+            'userView': {}
+        }
+        with self.Session() as session:
+
+            if view_id is not None: user_view = session.get(UserView, view_id)
+            else: user_view = session.execute(select(UserView).where(and_(UserView.user_id == user_id, UserView.name == 'default'))).first()
+            if user_view is None: return { 'error': f'View `{view_id}` doesn`t exist'}
+            result['userView'] = user_view.to_dict()
+
+            if result['userView']['filter'] in [None, '']:
+                for r, in session.execute(select(Task)): # TODO: implement pagination
+                    result['tasks'].update({str(r.id): r.to_dict()})
+                return { 'type': 'dashboard', 'data': result }
+            
+            baseline_regex = r'''baseline\s*\[\s*((~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+)\s*,\s*)*(~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+)\s*\]'''
+            task_regex = r'''task\s*\[\s*((~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+)\s*,\s*)*(~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+)\s*\]'''
+            # or_regex = r''' or '''
+
+            baseline_match = re.search(baseline_regex, result['userView']['filter'])
+            task_match = re.search(task_regex, result['userView']['filter'])
+            logger.debug(baseline_match)
+            logger.debug(task_match)
+            # logger.debug(str(task_match))
+
+            if task_match:
+                params = r'''\[\s*((~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+)\s*,\s*)*(~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+)\s*\]'''
+                task_match = re.search(params, task_match.group())
+                logger.debug(task_match)
+                params = r'''~?(\"|')[ a-zA-Z0-9]+(\"|')|[a-zA-Z0-9]+'''
+                tasks_inputs = re.search(params, task_match.group())
+                logger.debug(tasks_inputs)
+                
+
+        return { 'type': 'dashboard', 'data': result }
+
 
 
     # def add_task_to_baseline(self, task_id, baseline_id = None) -> None:

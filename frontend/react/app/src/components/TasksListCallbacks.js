@@ -3,36 +3,36 @@ import * as Validate from "./ProjectListInputsHandler"
 
 
 class TasksListCallbacks {
-    constructor(tasksMessages, tasks) {
+    constructor(tasksMessages, dashboard) {
         this.tasksMessages = tasksMessages
-        this.tasks = tasks
+        this.dashboard = dashboard
     }
 
     
     addTask = (e) => {
         e.target.textContent = e.target.textContent.trim()
         if (e.target.textContent !== '') 
-            this.tasksMessages['websocket'].addTask(e.target.textContent)
+            this.tasksMessages.addTask(e.target.textContent)
         e.target.textContent = '' //          why is it needed??!! 
     }
 
 
-    addTaskToBaseline = (index) => this.tasksMessages['websocket'].addTaskToBaseline(this.tasks.data[index]['id'])
+    addTaskToBaseline = (index) => this.tasksMessages.addTaskToBaseline(this.tasks.data[index]['id'])
 
 
-    hideSubTree = (index) => this.tasksMessages['websocket'].hideSubTree(this.tasks.data[index]['id'])
+    hideSubTree = (index) => this.tasksMessages.hideSubTree(this.tasks.data[index]['id'])
 
 
-    showSubTree = (index) => this.tasksMessages['websocket'].showSubTree(this.tasks.data[index]['id'])
+    showSubTree = (index) => this.tasksMessages.showSubTree(this.tasks.data[index]['id'])
 
 
-    updateTaskName = (e, index) => {
+    updateTaskName = (e, taskId) => {
         e.target.textContent = e.target.textContent.trim()
-        if (e.target.textContent === String(this.tasks.data[index]['name'])) return
-        const r = Validate.taskNameInputValidate(e.target.textContent, this.tasks.data)
+        if (e.target.textContent === String(this.dashboard['tasks'][taskId]['name'])) return
+        const r = Validate.taskNameInputValidate(e.target.textContent, this.dashboard['tasks'])
 
-        if (r) this.tasksMessages['websocket'].updateTaskName(this.tasks.data[index]['id'], e.target.textContent)
-        e.target.textContent = this.tasks.data[index]['name']
+        if (r) this.tasksMessages.updateTaskName(taskId, e.target.textContent)
+        e.target.textContent = this.dashboard['tasks'][taskId]['name']
     }
 
 
@@ -41,7 +41,7 @@ class TasksListCallbacks {
         if (e.target.textContent === String(this.tasks.data[index]['parent'])) return
         const r = Validate.changeParentInputValidate(index, e.target.textContent, this.tasks.data)
 
-        if (r) this.tasksMessages['websocket'].changeParent(this.tasks.data[index]['id'], e.target.textContent)
+        if (r) this.tasksMessages.changeParent(this.tasks.data[index]['id'], e.target.textContent)
         e.target.textContent = this.tasks.data[index]['parent']
     }
 

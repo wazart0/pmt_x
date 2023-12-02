@@ -5,7 +5,7 @@ class TasksListMessages extends WebSocket {
 
     addTask = (name) => {
         this.send(JSON.stringify({
-            'name': 'add_task',
+            'name': 'upsert_task',
             'args': {
                 'name': name
             }
@@ -23,31 +23,31 @@ class TasksListMessages extends WebSocket {
     }
 
 
-    hideSubTree = (taskId) => {
-        this.send(JSON.stringify({
-            'name': 'hide_subtree',
-            'args': {
-                'task_id': taskId
-            }
-        }))
-    }
+    // hideSubTree = (taskId) => {
+    //     this.send(JSON.stringify({
+    //         'name': 'hide_subtree',
+    //         'args': {
+    //             'task_id': taskId
+    //         }
+    //     }))
+    // }
 
 
-    showSubTree = (taskId) => {
-        this.send(JSON.stringify({
-            'name': 'show_subtree',
-            'args': {
-                'task_id': taskId
-            }
-        }))
-    }
+    // showSubTree = (taskId) => {
+    //     this.send(JSON.stringify({
+    //         'name': 'show_subtree',
+    //         'args': {
+    //             'task_id': taskId
+    //         }
+    //     }))
+    // }
 
 
     updateTaskName = (taskId, name) => {
         this.send(JSON.stringify({
-            'name': 'update_task_name',
+            'name': 'upsert_task',
             'args': {
-                'task_id': taskId,
+                'id': taskId,
                 'name': name
             }
         }))

@@ -1,8 +1,10 @@
-import timeit
+import logging
+import time
 
 from src.TasksList import TasksList
 from src.TasksListManager import TasksListManager
 
+logger = logging.getLogger()
 
 class TasksListMessages:
     def __init__(self, engine) -> None:
@@ -11,9 +13,9 @@ class TasksListMessages:
         pass
 
     def exec(self, message) -> None:
-        start = timeit.timeit()
+        start = time.time()
 
-        if 'name' not in message: return f"Missing function name"
+        if 'name' not in message: return { 'error': f"Missing function name" }
 
         method = None
         try:
@@ -22,13 +24,15 @@ class TasksListMessages:
             return {
                 'error': f"Class `{self.tasks_list.__class__.__name__}` does not implement `{message['name']}`"
             }
-            # raise NotImplementedError(f"Class `{self.tasks_list.__class__}` does not implement `{message['name']}`")
+
+        logger.info(message)
 
         if 'args' not in message: result = method()
         else: result = method(**message['args'])
+
         return {
             **result,
-            'exec_time': str(timeit.timeit() - start)
+            'exec_time': time.time() - start
         }
 
 
