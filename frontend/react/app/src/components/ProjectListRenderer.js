@@ -23,6 +23,7 @@ export const ProjectListRenderer = ({dashboard, columns, callbacks, showProjectD
                 return <td key={column} rowSpan={number_of_baselines}>{index}</td>
 
             case 'wbs':
+                if (dashboard.getPrimaryBaselineId() === null) return <td key={column} rowSpan={number_of_baselines}></td> 
                 if (!dashboard.getWBS()) 
                     return <td key={column} rowSpan={number_of_baselines}>
                         <button onClick={() => callbacks.addTaskToBaseline(taskId)}>ADD</button>

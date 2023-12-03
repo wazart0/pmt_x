@@ -140,17 +140,17 @@ class Tasks {
     getDescription = (id) => (this.tasks[id]['description'])
 
     getWBS = (id, baselineId = this.getPrimaryBaselineId()) => 
-        (this.baselines[baselineId] !== undefined ? this.baselines[baselineId][id]['wbs'] : null)
+        (this.baselines[baselineId] !== undefined && this.baselines[baselineId][id] !== undefined ? this.baselines[baselineId][id]['wbs'] : null)
     getWorktime = (id, baselineId = this.getPrimaryBaselineId()) => 
-        (this.baselines[baselineId] !== undefined ? this.baselines[baselineId][id]['worktime'] : null)
+        (this.baselines[baselineId] !== undefined && this.baselines[baselineId][id] !== undefined ? this.baselines[baselineId][id]['worktime'] : null)
     getParent = (id, baselineId = this.getPrimaryBaselineId()) => 
-        (this.baselines[baselineId] !== undefined ? this.baselines[baselineId][id]['parent'] : null)
+        (this.baselines[baselineId] !== undefined && this.baselines[baselineId][id] !== undefined ? this.baselines[baselineId][id]['parent'] : null)
     getPredecessors = (id, baselineId = this.getPrimaryBaselineId()) => 
-        (this.baselines[baselineId] !== undefined ? this.baselines[baselineId][id]['predecessors'] : null)
+        (this.baselines[baselineId] !== undefined && this.baselines[baselineId][id] !== undefined ? this.baselines[baselineId][id]['predecessors'] : null)
     getStart = (id, baselineId = this.getPrimaryBaselineId()) => 
-        (this.baselines[baselineId] !== undefined ? this.baselines[baselineId][id]['start'] : null)
+        (this.baselines[baselineId] !== undefined && this.baselines[baselineId][id] !== undefined ? this.baselines[baselineId][id]['start'] : null)
     getFinish = (id, baselineId = this.getPrimaryBaselineId()) => 
-        (this.baselines[baselineId] !== undefined ? this.baselines[baselineId][id]['finish'] : null)
+        (this.baselines[baselineId] !== undefined && this.baselines[baselineId][id] !== undefined ? this.baselines[baselineId][id]['finish'] : null)
 
     getHidden = (id) => (this.userView['doc']['tasks'][id]['hidden'])
     getHiddenChildren = (id) => (this.userView['doc']['tasks'][id]['hiddenChildren'])
