@@ -171,7 +171,7 @@ class Tasks {
             'hasChildren': false,
             'hiddenChildren': false
         }
-        if (!(task['id'] in this.tasksList)) this.tasksList.push(task['id'])
+        if (!this.tasksList.includes(task['id'])) this.tasksList.push(task['id'])
     }
 }
 
