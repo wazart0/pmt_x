@@ -312,7 +312,8 @@ class Dashboard extends Component {
             'args': {
                 'user_id': this.userCurrentId, 
                 'name': viewName, 
-                'filter': ''
+                'filter': this.dashboardData.userView['filter'],
+                'doc': this.dashboardData.userView['doc']
             }})
     }
 
