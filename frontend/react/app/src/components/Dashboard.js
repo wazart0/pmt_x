@@ -171,7 +171,7 @@ class Tasks {
             'hasChildren': false,
             'hiddenChildren': false
         }
-        this.tasksList.push(task['id'])
+        if (!(task['id'] in this.tasksList)) this.tasksList.push(task['id'])
     }
 }
 
@@ -265,9 +265,9 @@ class Dashboard extends Component {
                 this.dashboardData['tasksList'] = Object.keys(this.dashboardData['tasks'])
                 break
 
-                case 'task':
-                    this.dashboardData.insertTask(data['data'])
-                    break
+            case 'task':
+                this.dashboardData.insertTask(data['data'])
+                break
 
             case 'baselines':
                 Object.keys(data['data']).forEach((key) => {
