@@ -1,37 +1,27 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+
+from typing import Annotated
 import copy
 import logging
-
-from sqlalchemy import insert, select, func
-from sqlalchemy.orm import sessionmaker
 
 # from src.TasksList import TasksList
 from src.TasksListMessages import TasksListMessages
 from src.tmpdata import demo_data
 from src.database import engine
-from src.models import Base, User, Task, Baseline, UserView, _newid
+from src.migration import migrate
+from src.authentication import generate_token, get_current_active_user
+from src.api_models import User
 
 
 FORMAT = "%(levelname)s:\t%(message)s"
 logging.basicConfig(format=FORMAT, level=logging.DEBUG)
 logger = logging.getLogger()
 
-Base.metadata.create_all(engine, checkfirst=True)
-
-def init_db():
-    Session = sessionmaker(engine)
-    with Session() as session:
-        result, = session.query(func.count(User.id)).one()
-        if result == 0:
-            for i in range(10):
-                session.execute(insert(User).values(id=_newid(), name=f'User {i}'))
-            session.commit()
-
-init_db()
+migrate()
 
 app = FastAPI()
 
-# global_websocket = WebSocket()
 
 
 @app.get("/health")
@@ -39,8 +29,23 @@ def health() -> str:
     return 'OK'
 
 
+@app.post("/token")
+def token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    return generate_token(form_data)
+
+
+@app.get("/user")
+def user(
+    user: Annotated[User, Depends(get_current_active_user)]
+    ):
+    return user
+
+
 @app.websocket("/taskslist")
-async def websocket_taskslist(websocket: WebSocket):
+async def websocket_taskslist(
+    user: Annotated[User, Depends(get_current_active_user)],
+    websocket: WebSocket
+    ):
     taskslist = TasksListMessages(engine)
     await websocket.accept()
     while True:

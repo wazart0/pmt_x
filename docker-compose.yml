@@ -8,45 +8,55 @@ services:
     restart: always
 
     ports:
-      - 5432:5432
+      - 11002:5432
 
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: example
+    env_file: .env.local
 
 
   be:
     image: pmt_x_be
     build: ./backend/
-    command: uvicorn main:app --reload --host 0.0.0.0
+    # command: uvicorn main:app --reload --host 0.0.0.0
+    entrypoint: sh -c "service ssh start && sleep infinity"
 
     ports:
-      - 8000:8000
+      - 11001:8000
+      - 11011:22
 
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: pmtx
-      DB_USER: postgres
-      DB_PASS: example
+    env_file: .env.local
 
     working_dir: /app/
     volumes:
       - ./backend/app:/app:Z
+      - ./.env.local:/env/.env.local:ro
+
+
+  # fe:
+  #   image: pmt_x_fe
+  #   build: ./frontend/react/
+
+  #   command: nodemon index.js -L #npm run dev
+
+  #   ports:
+  #     - 3000:3000
+
+  #   working_dir: /app
+  #   volumes:
+  #     - ./frontend/react/app:/app:Z
 
 
   fe:
     image: pmt_x_fe
-    build: ./frontend/react/
+    build: ./frontend/nextjs/
 
-    command: nodemon index.js -L #npm run dev
+    entrypoint: sh -c "service ssh start && sleep infinity"
 
-    ports:
-      - 3000:3000
-
+    ports: 
+      - 11000:3000
+      - 11010:22
     working_dir: /app
     volumes:
-      - ./frontend/react/app:/app:Z
+      - ./frontend/nextjs/app:/app:Z
 
 
 networks:

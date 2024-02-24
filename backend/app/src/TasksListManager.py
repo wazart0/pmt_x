@@ -5,7 +5,7 @@ import logging
 import re
 
 
-from src.models import _isid, _newid, User, Task, Baseline, UserView
+from src.db_models import _isid, _newid, User, Task, Baseline, UserView
 
 
 logger = logging.getLogger()

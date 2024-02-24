@@ -1,12 +1,15 @@
 uvicorn
 fastapi
 requests
-rfc3339
 python-dateutil
 pytz
 pandas
 websockets
 SQLAlchemy
 psycopg2
+python-multipart
+python-dotenv
+sqlalchemy_utils
 # sqlmodel
+# rfc3339
 # pydgraph
