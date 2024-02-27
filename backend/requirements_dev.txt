@@ -10,6 +10,8 @@ psycopg2
 python-multipart
 python-dotenv
 sqlalchemy_utils
-# sqlmodel
+python-jose[cryptography]
+passlib[bcrypt]
+sqlmodel
 # rfc3339
 # pydgraph

@@ -1,93 +1,60 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
+from jose import JWTError, jwt
 from typing import Annotated
 import base64
 
-from sqlalchemy.orm import Session
-from sqlalchemy import insert, select, update, and_, or_
+# from sqlalchemy.orm import Session
+# from sqlalchemy import insert, select, update, and_, or_
+from sqlmodel import Session, select
 
+from datetime import datetime, timedelta, timezone
 
-import src.api_models as api
-import src.db_models as db
+# import src.api_models as api
+# import src.db_models as db
 from src.database import engine
-
-
-# fake_users_db = {
-#     "johndoe": {
-#         "username": "johndoe",
-#         "full_name": "John Doe",
-#         "email": "johndoe@example.com",
-#         "hashed_password": "fakehashedpass",
-#         "disabled": False,
-#     },
-#     "alice": {
-#         "username": "alice",
-#         "full_name": "Alice Wonderson",
-#         "email": "alice@example.com",
-#         "hashed_password": "fakehashedpass",
-#         "disabled": True,
-#     },
-# }
-
+from src.utils import get_password_hash, verify_password
+from src.models import User, Token, TokenData
+from src.config import config
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-def fake_hash_password(password: str):
-    return "fakehashed_" + password
-    
 
-def get_user_by_name(name: str):
-    with Session(engine) as session:
-        user = session.query(db.User).filter(db.User.name == name).first()
-        return user
-    
-
-def get_user_by_id(id: str):
-    with Session(engine) as session:
-        user = session.query(db.User).filter(db.User.id == id).first()
-        return user
-
-
-def decode_token_and_retrieve_user(token):
-    # This doesn't provide any security at all
-    # TODO: Check the next version
-    try:
-        user_id = base64.b64decode(bytes(token, 'utf-8')).decode('utf-8')
-    except:
-        return None
-    return get_user_by_id(user_id)
+def authenticate_user(session, username: str, password: str):
+    user = session.exec(select(User.id, User.username, User.password).where(User.username == username)).first()
+    if not user:
+        return False
+    if not verify_password(password, user.password):   # TODO: implement passwords
+        return False
+    return user
 
 
 def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
-    user = decode_token_and_retrieve_user(token)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, config['BE_JWT_SECRET_KEY'], algorithms=[config['BE_JWT_ALGORITHM']])
+        id: str = payload.get("sub")
+        if id is None:
+            raise credentials_exception
+        # token_data = TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    with Session(engine) as session:
+        # user = session.exec(select(User).where(User.username == username)).first()
+        user = session.get(User, id)
+    if user is None:
+        raise credentials_exception
     return user
 
 
-def get_current_active_user(
-    user: Annotated[api.User, Depends(get_current_user)]
-):
-    # if current_user.disabled:
-    #     raise HTTPException(status_code=400, detail="Inactive user")
-    return user
-
-
-
-
-def generate_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    user = get_user_by_name(form_data.username)
-    if not user:
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
-    ### TODO: implement password validation
-    # hashed_password = fake_hash_password(form_data.password)
-    # if not hashed_password == user.hashed_password:
-    #     raise HTTPException(status_code=400, detail="Incorrect username or password")
-    token = base64.b64encode(bytes(str(user.id), 'utf-8'))
-    return {"access_token": token, "token_type": "bearer"}
+def create_access_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=int(config['BE_JWT_TOKEN_EXPIRE_MINUTES']))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, config['BE_JWT_SECRET_KEY'], algorithm=config['BE_JWT_ALGORITHM'])

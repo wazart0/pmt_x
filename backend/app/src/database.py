@@ -1,4 +1,5 @@
-from sqlalchemy import create_engine
+# from sqlalchemy import create_engine
+from sqlmodel import create_engine
 from .config import config
 
 # load_dotenv()
@@ -13,8 +14,5 @@ from .config import config
 
 pg_url = f'postgresql+psycopg2://{config['POSTGRES_USER']}:{config['POSTGRES_PASSWORD']}@{config['POSTGRES_HOST']}:{config['POSTGRES_PORT']}/{config['POSTGRES_NAME']}'
 
-engine = create_engine(pg_url)
+engine = create_engine(pg_url, echo=True)
 
-
-# def create_db_and_tables():
-#     SQLModel.metadata.create_all(engine)

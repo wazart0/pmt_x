@@ -1,23 +1,23 @@
 from sqlalchemy_utils import database_exists, create_database
+from sqlmodel import SQLModel, Session
 
-from sqlalchemy import insert, select, func
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import func
 
 from src.database import engine
-from src.db_models import Base, User, Task, Baseline, UserView, _newid
+from src.models import Base, User, Task, Baseline, UserView
+from src.utils import get_password_hash
 
 
 
-def migrate():
+def migrate_database():
     if not database_exists(engine.url):
         create_database(engine.url)
 
-    Base.metadata.create_all(engine, checkfirst=True)
+    SQLModel.metadata.create_all(engine)
 
-    Session = sessionmaker(engine)
-    with Session() as session:
+    with Session(engine) as session:
         result, = session.query(func.count(User.id)).one()
         if result == 0:
             for i in range(10):
-                session.execute(insert(User).values(id=_newid(), name=f'User {i}'))
+                session.add(User(name=f'User {i}', username=f'user{i}', password=get_password_hash(f'pass{i}')))
             session.commit()

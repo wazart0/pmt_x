@@ -32,18 +32,17 @@ class Base(DeclarativeBase):
         }
 
     id: Mapped[UUID] = mapped_column(primary_key=True, insert_default=_newid())
-    name: Mapped[str] = mapped_column(String(511))
+    name: Mapped[str] = mapped_column(String(512))
     create_date: Mapped[datetime] = mapped_column(insert_default=func.now())
     update_date: Mapped[datetime] = mapped_column(insert_default=func.now(), onupdate=func.now())
     
     def __repr__(self) -> str:
-        return f'User(id={self.id!r}, name={self.name!r}, create_date={self.name!r}, update_date={self.name!r})'
+        return f'User(id={self.id!r}, name={self.name!r}, create_date={self.create_date!r}, update_date={self.update_date!r})'
     
     def to_dict(self):
         return { 
                 'id': str(self.id),
                 'name': self.name,
-                'doc': self.doc,
                 'create_date': self.create_date.isoformat(),
                 'update_date': self.update_date.isoformat()
             }
@@ -52,6 +51,19 @@ class Base(DeclarativeBase):
 
 class User(Base):
     __tablename__ = 'user'
+
+    username: Mapped[str] = mapped_column(String(512), unique=True)
+    password: Mapped[str] = mapped_column(String(1024))
+    
+    def to_dict(self):
+        return { 
+                'id': str(self.id),
+                'name': self.name,
+                'username': self.username,
+                'create_date': self.create_date.isoformat(),
+                'update_date': self.update_date.isoformat()
+            }
+    
 
 
 
