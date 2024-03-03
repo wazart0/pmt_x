@@ -5,7 +5,7 @@ RUN sed -i 's/.*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config
 RUN sed -i 's/.*PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config
 RUN echo "root:dev" | chpasswd
 
-COPY requirements_dev.txt /app/requirements_dev.txt
-RUN pip3 install -r /app/requirements_dev.txt
+COPY /app/requirements.txt /app/requirements.txt
+RUN pip3 install -r /app/requirements.txt
 
 WORKDIR /app
