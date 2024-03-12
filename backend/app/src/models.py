@@ -239,17 +239,17 @@ class WorklogUpdate(SQLModel):
 
 
 class BaselineTaskBase(SQLModel):
-    duration: timedelta = Field(default='', nullable=False, sa_type=Interval)
-    parent: uuid_pkg.UUID = Field(nullable=True, foreign_key='task.id')
-    predecessors: Dict = Field(default={}, sa_column=Column(
-        JSON().with_variant(JSONB(), 'postgresql'), 
-        nullable=False,
-        server_default=text(''''{}'::jsonb''')
-    ))
-    start: datetime = Field(nullable=True, sa_type=TIMESTAMP(timezone=True))
-    finish: datetime = Field(nullable=True, sa_type=TIMESTAMP(timezone=True))
-    auto_allocation: bool = True
-    doc: Dict = Field(default={}, sa_column=Column(
+    duration: Optional[timedelta] = Field(default='P0D', nullable=False, sa_type=Interval)
+    parent: Optional[uuid_pkg.UUID | None] = Field(nullable=True, foreign_key='task.id')
+    # predecessors: Optional[Dict] = Field(default={}, sa_column=Column(
+    #     JSON().with_variant(JSONB(), 'postgresql'), 
+    #     nullable=False,
+    #     server_default=text(''''{}'::jsonb''')
+    # ))
+    start: Optional[datetime | None]  = Field(nullable=True, sa_type=TIMESTAMP(timezone=True))
+    finish: Optional[datetime | None]  = Field(nullable=True, sa_type=TIMESTAMP(timezone=True))
+    auto_allocation: Optional[bool]  = True
+    doc: Optional[Dict] = Field(default={}, sa_column=Column(
         JSON().with_variant(JSONB(), 'postgresql'), 
         nullable=False,
         server_default=text(''''{}'::jsonb''')
@@ -259,7 +259,7 @@ class BaselineTaskBase(SQLModel):
 class BaselineTask(BaselineTaskBase, table=True):
     wbs: str = ''
     task_id: uuid_pkg.UUID = Field(nullable=False, foreign_key='task.id', index=True)
-    baseline_id: uuid_pkg.UUID = Field(nullable=False, foreign_key='task.id', index=True)
+    baseline_id: uuid_pkg.UUID = Field(nullable=False, foreign_key='baseline.id', index=True)
     validation: Dict = Field(default={}, sa_column=Column(
         JSON().with_variant(JSONB(), 'postgresql'), 
         nullable=False,
@@ -274,21 +274,56 @@ class BaselineTask(BaselineTaskBase, table=True):
 class BaselineTaskCreate(BaselineTaskBase):
     pass
 
-
+    
 class BaselineTaskRead(BaselineTaskBase):
-    baseline_id: Optional[uuid_pkg.UUID] = None
-    task_id: Optional[uuid_pkg.UUID] = None
-    validation: Optional[Dict] = None
+    baseline_id: uuid_pkg.UUID
+    task_id: uuid_pkg.UUID
+    validation: Dict
 
 
 class BaselineTaskUpdate(SQLModel):
     duration: Optional[timedelta] = None
     parent: Optional[uuid_pkg.UUID] = None
-    predecessors: Optional[Dict] = None
+    # predecessors: Optional[Dict] = None
     start: Optional[datetime] = None
     finish: Optional[datetime] = None
     auto_allocation: Optional[bool] = None
     doc: Optional[Dict] = None
+
+
+class BaselineTaskPredecessorBase(SQLModel):
+    type: str
+
+
+class BaselineTaskPredecessor(BaselineTaskPredecessorBase, table=True):
+    task_id: uuid_pkg.UUID = Field(nullable=False, foreign_key='task.id', index=True)
+    baseline_id: uuid_pkg.UUID = Field(nullable=False, foreign_key='baseline.id', index=True)
+    predecessor_id: uuid_pkg.UUID = Field(nullable=False, foreign_key='task.id')
+    validation: Dict = Field(default={}, sa_column=Column(
+        JSON().with_variant(JSONB(), 'postgresql'), 
+        nullable=False,
+        server_default=text(''''{}'::jsonb''')
+    ))
+
+    __table_args__ = (
+        PrimaryKeyConstraint('baseline_id', 'task_id', 'predecessor_id', name='btp_pk'),
+    )
+
+
+class BaselineTaskPredecessorCreate(BaselineTaskPredecessorBase):
+    pass
+
+    
+class BaselineTaskPredecessorRead(BaselineTaskPredecessorBase):
+    baseline_id: uuid_pkg.UUID
+    task_id: uuid_pkg.UUID
+    predecessor_id: uuid_pkg.UUID
+    validation: Dict
+
+
+class BaselineTaskPredecessorUpdate(SQLModel):
+    type: str
+
 
 
 

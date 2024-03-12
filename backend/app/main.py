@@ -25,6 +25,7 @@ from src.models import View, ViewCreate, ViewRead, ViewUpdate
 from src.models import Resource, ResourceCreate, ResourceRead, ResourceUpdate
 from src.models import Worklog, WorklogCreate, WorklogRead, WorklogUpdate
 from src.models import BaselineTask, BaselineTaskCreate, BaselineTaskRead, BaselineTaskUpdate
+from src.models import BaselineTaskPredecessor, BaselineTaskPredecessorCreate, BaselineTaskPredecessorRead, BaselineTaskPredecessorUpdate
 
 
 
@@ -44,7 +45,7 @@ def on_startup():
 
 @app.get('/health')
 def health() -> str:
-    return 'OK'
+    return 'ok'
 
 
 @app.post('/token')
@@ -126,6 +127,7 @@ def create_object(Model, object, user_id, access_scope = None):
         try:
             session.commit()
         except IntegrityError as e:
+            logger.info(e)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
                 detail=error_details(Error.CREATE_OBJECT, user_id))
@@ -145,6 +147,7 @@ def patch_object(Model, id, object, user_id, access_scope = None):
         try:
             session.commit()
         except IntegrityError as e:
+            logger.info(e)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
                 detail=error_details(Error.PATCH_OBJECT_3, user_id))
@@ -352,7 +355,30 @@ def create_baseline_task(
         baseline_id: str,
         task_id: str
     ) -> BaselineTaskRead:
-    return create_object(BaselineTask, baseline_task, db_user.id)
+    if not models._isid(baseline_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail=error_details(Error.CREATE_BASELINE_TASK_1, db_user.id, baseline_id))
+    if not models._isid(task_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_details(Error.CREATE_BASELINE_TASK_2, db_user.id, task_id))
+
+    with Session(engine) as session:
+        db_object = BaselineTask.model_validate(baseline_task, update={
+            'baseline_id': baseline_id,
+            'task_id': task_id
+        })
+        session.add(db_object)
+        try:
+            session.commit()
+        except IntegrityError as e:
+            logger.info(e)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=error_details(Error.CREATE_BASELINE_TASK_3, db_user.id, (baseline_id, task_id)))
+        session.refresh(db_object)
+        return db_object
 
 
 @app.patch('/sharespace/baseline/{baseline_id}/task/{task_id}')
@@ -362,15 +388,52 @@ def patch_baseline_task(
         baseline_id: str,
         task_id: str
     ) -> BaselineTaskRead:
-    return patch_object(BaselineTask, id, baseline, db_user.id)
+    if not models._isid(baseline_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail=error_details(Error.PATCH_BASELINE_TASK_1, db_user.id, baseline_id))
+    if not models._isid(task_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_details(Error.PATCH_BASELINE_TASK_2, db_user.id, task_id))
+
+    object_data = baseline_task.model_dump(exclude_unset=True)
+    with Session(engine) as session:
+        db_object = session.get(BaselineTask, (baseline_id, task_id))
+        if not db_object:
+            raise HTTPException(status_code=404, detail=error_details(Error.PATCH_BASELINE_TASK_3, user_id, (baseline_id, task_id)))
+        db_object.sqlmodel_update(object_data)
+        try:
+            session.commit()
+        except IntegrityError as e:
+            logger.info(e)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=error_details(Error.PATCH_BASELINE_TASK_4, user_id, (baseline_id, task_id)))
+        session.refresh(db_object)
+        return db_object
 
 
 @app.get('/sharespace/baseline/{baseline_id}/task/{task_id}')
 def get_baseline_task(
         db_user: Annotated[User, Depends(get_current_user)],
-        id: str
+        baseline_id: str,
+        task_id: str
     ) -> BaselineTaskRead:
-    return get_object(BaselineTask, id, db_user.id)
+    if not models._isid(baseline_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail=error_details(Error.GET_BASELINE_TASK_1, db_user.id, baseline_id))
+    if not models._isid(task_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_details(Error.GET_BASELINE_TASK_2, db_user.id, task_id))
+
+    with Session(engine) as session:
+        db_object = session.get(BaselineTask, (baseline_id, task_id))
+        if not db_object:
+            raise HTTPException(status_code=404, detail=error_details(Error.GET_BASELINE_TASK_3, user_id, (baseline_id, task_id)))
+        return db_object
 
 
 @app.get('/sharespace/baseline/{baseline_id}/tasks')
@@ -378,7 +441,105 @@ def get_baseline_tasks(
         db_user: Annotated[User, Depends(get_current_user)],
         baseline_id: str
     ) -> List[BaselineTaskRead]:
-    return get_objects(BaselineTask, db_user.id)
+    if not models._isid(baseline_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail=error_details(Error.GET_BASELINE_TASKS_1, db_user.id, baseline_id))
+
+    with Session(engine) as session:
+        statement = select(BaselineTask).filter_by(BaselineTask.baseline_id == baseline_id)
+        db_objects = session.exec(statement).all()
+        return db_objects
+
+
+@app.post('/sharespace/baseline/{baseline_id}/task/{task_id}/predecessor/{predecessor_id}')
+def create_baseline_task_predecessor(
+        db_user: Annotated[User, Depends(get_current_user)],
+        baseline_task: BaselineTaskPredecessorCreate,
+        baseline_id: str,
+        task_id: str,
+        predecessor_id: str
+    ) -> BaselineTaskPredecessorRead:
+    if not models._isid(baseline_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail=error_details(Error.CREATE_BASELINE_TASK_PREDECESSOR_1, db_user.id, baseline_id))
+    if not models._isid(task_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_details(Error.CREATE_BASELINE_TASK_PREDECESSOR_2, db_user.id, task_id))
+    if not models._isid(predecessor_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_details(Error.CREATE_BASELINE_TASK_PREDECESSOR_3, db_user.id, predecessor_id))
+
+    with Session(engine) as session:
+        db_object = BaselineTaskPredecessor.model_validate(baseline_task, update={
+            'baseline_id': baseline_id,
+            'task_id': task_id,
+            'predecessor_id': predecessor_id
+        })
+        session.add(db_object)
+        try:
+            session.commit()
+        except IntegrityError as e:
+            logger.info(e)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=error_details(Error.CREATE_BASELINE_TASK_PREDECESSOR_4, db_user.id, (baseline_id, task_id, predecessor_id)))
+        session.refresh(db_object)
+        return db_object
+
+
+@app.delete('/sharespace/baseline/{baseline_id}/task/{task_id}/predecessor/{predecessor_id}')
+def delete_baseline_task_predecessor(
+        db_user: Annotated[User, Depends(get_current_user)],
+        baseline_id: str,
+        task_id: str,
+        predecessor_id: str
+    ) -> str:
+    if not models._isid(baseline_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail=error_details(Error.DELETE_BASELINE_TASK_PREDECESSOR_1, db_user.id, baseline_id))
+    if not models._isid(task_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_details(Error.DELETE_BASELINE_TASK_PREDECESSOR_2, db_user.id, task_id))
+    if not models._isid(predecessor_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_details(Error.DELETE_BASELINE_TASK_PREDECESSOR_3, db_user.id, predecessor_id))
+
+    with Session(engine) as session:
+        db_object = session.get(BaselineTaskPredecessor, (baseline_id, task_id, predecessor_id))
+        if not db_object:
+            raise HTTPException(status_code=404, detail=error_details(Error.DELETE_BASELINE_TASK_PREDECESSOR_4, user_id, (baseline_id, task_id)))
+        session.delete(db_object)
+        try:
+            session.commit()
+        except IntegrityError as e:
+            logger.info(e)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=error_details(Error.DELETE_BASELINE_TASK_PREDECESSOR_5, db_user.id, (baseline_id, task_id, predecessor_id)))
+        return 'ok'
+
+
+@app.get('/sharespace/baseline/{baseline_id}/predecessors')
+def get_baseline_predecessors(
+        db_user: Annotated[User, Depends(get_current_user)],
+        baseline_id: str
+    ) -> List[BaselineTaskPredecessorRead]:
+    if not models._isid(baseline_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail=error_details(Error.GET_BASELINE_PREDECESSORS_1, db_user.id, baseline_id))
+
+    with Session(engine) as session:
+        statement = select(BaselineTaskPredecessor).filter_by(BaselineTaskPredecessor.baseline_id == baseline_id)
+        db_objects = session.exec(statement).all()
+        return db_objects
 
 
 
@@ -395,7 +556,8 @@ async def websocket_taskslist(
     while True:
         try:
             data = await websocket.receive_json()
-        except WebSocketDisconnect:
+        except WebSocketDisconnect as e:
+            logger.info(e)
             return
         result = taskslist.exec(data)
         await websocket.send_json(result)

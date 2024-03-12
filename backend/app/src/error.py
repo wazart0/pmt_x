@@ -46,3 +46,88 @@ class Error:
         'code': 1243,
         'message': 'Integrity error found'
     }
+    CREATE_BASELINE_TASK_1 = {
+        'code': 1244,
+        'message': 'Object not found'
+    }
+    CREATE_BASELINE_TASK_2 = {
+        'code': 1245,
+        'message': 'Object not found'
+    }
+    CREATE_BASELINE_TASK_3 = {
+        'code': 1246,
+        'message': 'Integrity error found'
+    }
+    PATCH_BASELINE_TASK_1 = {
+        'code': 1247,
+        'message': 'Object not found'
+    }
+    PATCH_BASELINE_TASK_2 = {
+        'code': 1248,
+        'message': 'Object not found'
+    }
+    PATCH_BASELINE_TASK_3 = {
+        'code': 1249,
+        'message': 'Object not found'
+    }
+    PATCH_BASELINE_TASK_4 = {
+        'code': 1250,
+        'message': 'Object not found'
+    }
+    GET_BASELINE_TASK_1 = {
+        'code': 1251,
+        'message': 'Object not found'
+    }
+    GET_BASELINE_TASK_2 = {
+        'code': 1252,
+        'message': 'Object not found'
+    }
+    GET_BASELINE_TASK_3 = {
+        'code': 1253,
+        'message': 'Object not found'
+    }
+    GET_BASELINE_TASKS_1 = {
+        'code': 1254,
+        'message': 'Object not found'
+    }
+    CREATE_BASELINE_TASK_PREDECESSOR_1 = {
+        'code': 1255,
+        'message': 'Object not found'
+    }
+    CREATE_BASELINE_TASK_PREDECESSOR_2 = {
+        'code': 1256,
+        'message': 'Object not found'
+    }
+    CREATE_BASELINE_TASK_PREDECESSOR_3 = {
+        'code': 1257,
+        'message': 'Object not found'
+    }
+    CREATE_BASELINE_TASK_PREDECESSOR_4 = {
+        'code': 1258,
+        'message': 'Integrity error found'
+    }
+    DELETE_BASELINE_TASK_PREDECESSOR_1 = {
+        'code': 1259,
+        'message': 'Object not found'
+    }
+    DELETE_BASELINE_TASK_PREDECESSOR_2 = {
+        'code': 1260,
+        'message': 'Object not found'
+    }
+    DELETE_BASELINE_TASK_PREDECESSOR_3 = {
+        'code': 1261,
+        'message': 'Object not found'
+    }
+    DELETE_BASELINE_TASK_PREDECESSOR_4 = {
+        'code': 1262,
+        'message': 'Object not found'
+    }
+    DELETE_BASELINE_TASK_PREDECESSOR_5 = {
+        'code': 1263,
+        'message': 'Integrity error found'
+    }
+    GET_BASELINE_PREDECESSORS_1 = {
+        'code': 1264,
+        'message': 'Object not found'
+    }
+    
