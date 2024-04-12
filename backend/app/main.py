@@ -1,5 +1,6 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
@@ -36,6 +37,14 @@ logger = logging.getLogger()
 
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event('startup')
@@ -401,7 +410,7 @@ def patch_baseline_task(
     with Session(engine) as session:
         db_object = session.get(BaselineTask, (baseline_id, task_id))
         if not db_object:
-            raise HTTPException(status_code=404, detail=error_details(Error.PATCH_BASELINE_TASK_3, user_id, (baseline_id, task_id)))
+            raise HTTPException(status_code=404, detail=error_details(Error.PATCH_BASELINE_TASK_3, db_user.id, (baseline_id, task_id)))
         db_object.sqlmodel_update(object_data)
         try:
             session.commit()
@@ -409,7 +418,7 @@ def patch_baseline_task(
             logger.info(e)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
-                detail=error_details(Error.PATCH_BASELINE_TASK_4, user_id, (baseline_id, task_id)))
+                detail=error_details(Error.PATCH_BASELINE_TASK_4, db_user.id, (baseline_id, task_id)))
         session.refresh(db_object)
         return db_object
 
@@ -432,7 +441,7 @@ def get_baseline_task(
     with Session(engine) as session:
         db_object = session.get(BaselineTask, (baseline_id, task_id))
         if not db_object:
-            raise HTTPException(status_code=404, detail=error_details(Error.GET_BASELINE_TASK_3, user_id, (baseline_id, task_id)))
+            raise HTTPException(status_code=404, detail=error_details(Error.GET_BASELINE_TASK_3, db_user.id, (baseline_id, task_id)))
         return db_object
 
 
@@ -514,7 +523,7 @@ def delete_baseline_task_predecessor(
     with Session(engine) as session:
         db_object = session.get(BaselineTaskPredecessor, (baseline_id, task_id, predecessor_id))
         if not db_object:
-            raise HTTPException(status_code=404, detail=error_details(Error.DELETE_BASELINE_TASK_PREDECESSOR_4, user_id, (baseline_id, task_id)))
+            raise HTTPException(status_code=404, detail=error_details(Error.DELETE_BASELINE_TASK_PREDECESSOR_4, db_user.id, (baseline_id, task_id)))
         session.delete(db_object)
         try:
             session.commit()

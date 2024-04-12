@@ -3,6 +3,9 @@
 import { AuthBindings } from "@refinedev/core";
 import Cookies from "js-cookie";
 
+import { Token } from "@components/api";
+import { defaultApi } from "@providers/api-provider";
+
 const mockUsers = [
   {
     name: "John Doe",
@@ -18,14 +21,20 @@ const mockUsers = [
   },
 ];
 
+
+
 export const authProvider: AuthBindings = {
   login: async ({ email, username, password, remember }) => {
     // Suppose we actually send a request to the back end here.
     const user = mockUsers[0];
 
-    if (user) {
-      Cookies.set("auth", JSON.stringify(user), {
-        expires: 30, // 30 days
+    const token = await defaultApi.createTokenTokenPost('user1', 'pass1')
+
+    console.log(token)
+
+    if (token.status == 200) {
+      Cookies.set("auth", JSON.stringify(token.data), {
+        expires: 1, // 30 days
         path: "/",
       });
       return {

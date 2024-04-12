@@ -6,7 +6,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=--max_old_space_size=4096 refine dev",
+    "dev": "PORT=11000 cross-env NODE_OPTIONS=--max_old_space_size=4096 refine dev",
     "build": "refine build",
     "start": "refine start",
     "lint": "eslint '**/*.{js,jsx,ts,tsx}'",
@@ -33,6 +33,7 @@
     "react-dom": "^18.0.0"
   },
   "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.12.0",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^18.0.0",
     "@types/react": "^18.0.0",
@@ -41,6 +42,8 @@
     "cross-env": "^7.0.3",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.1.0",
+    "openapi-typescript": "^6.7.4",
+    "openapi-typescript-codegen": "^0.27.0",
     "typescript": "^4.7.4"
   },
   "refine": {

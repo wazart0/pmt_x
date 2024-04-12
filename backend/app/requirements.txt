@@ -6,7 +6,7 @@ pytz
 pandas
 websockets
 SQLAlchemy
-psycopg2
+psycopg2-binary
 python-multipart
 python-dotenv
 sqlalchemy_utils
