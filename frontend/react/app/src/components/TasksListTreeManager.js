@@ -1,4 +1,4 @@
-import { resetIDs } from "./ProjectVars";
+import { resetIDs } from "./ProjectVars.js";
 import { isString } from "./utils.js"
 
 
@@ -33,20 +33,20 @@ export function showSubTree(data, id) { // assumption is that the data is sorted
 }
 
 
-export function sortByWBS(data) {
+export function sortByWBS(tasksList, baselineTasks) {
     function compare(a, b) {
-        if (a.wbs === b.wbs) return 0
-        if (a.wbs === null) return 1
-        if (b.wbs === null) return -1
-        const a_array = a.wbs.split('.')
-        const b_array = b.wbs.split('.')
+        if (baselineTasks[a] === undefined && baselineTasks[b] === undefined) return 0
+        if (baselineTasks[a] === undefined || baselineTasks[a]['wbs'] === null) return 1
+        if (baselineTasks[b] === undefined || baselineTasks[b]['wbs'] === null) return -1
+        const a_array = baselineTasks[a]['wbs'].split('.')
+        const b_array = baselineTasks[b]['wbs'].split('.')
         for (let i in (a_array.length < b_array.length) ? a_array : b_array) {
             if (Number(a_array[i]) < Number(b_array[i])) return -1
             if (Number(a_array[i]) > Number(b_array[i])) return 1
         }
         return 0
     }
-    data.sort(compare)
+    tasksList.sort(compare)
 }
 
 

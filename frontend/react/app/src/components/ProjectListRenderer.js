@@ -24,22 +24,22 @@ export const ProjectListRenderer = ({dashboard, columns, callbacks, showProjectD
 
             case 'wbs':
                 if (dashboard.getPrimaryBaselineId() === null) return <td key={column} rowSpan={number_of_baselines}></td> 
-                if (!dashboard.getWBS()) 
+                if (!dashboard.getWBS(taskId)) 
                     return <td key={column} rowSpan={number_of_baselines}>
-                        <button onClick={() => callbacks.addTaskToBaseline(taskId)}>ADD</button>
+                        <button onClick={() => callbacks.addTaskToBaseline(taskId, dashboard.getPrimaryBaselineId())}>ADD</button>
                     </td>
                 if (!dashboard.getHasChildren(taskId))
                     return <td key={column} rowSpan={number_of_baselines}>
-                        {dashboard.getWBS()}
+                        {dashboard.getWBS(taskId)}
                     </td>
                 if (!dashboard.getHiddenChildren(taskId))
                     return <td key={column} rowSpan={number_of_baselines}>
-                        {dashboard.getWBS()}
+                        {dashboard.getWBS(taskId)}
                         <button onClick={() => callbacks.hideSubTree(index)}>[-]</button>
                     </td>
                 if (dashboard.getHiddenChildren(taskId))
                     return <td key={column} rowSpan={number_of_baselines}>
-                        {dashboard.getWBS()}
+                        {dashboard.getWBS(taskId)}
                         <button onClick={() => callbacks.showSubTree(index)}>[+]</button>
                     </td>
                 return <td key={column} rowSpan={number_of_baselines}></td>                
@@ -84,7 +84,7 @@ export const ProjectListRenderer = ({dashboard, columns, callbacks, showProjectD
                     <div key={column}
                         suppressContentEditableWarning='true' 
                         contentEditable='true' 
-                        onBlur={(e) => callbacks.updateParent(e, index)}>{
+                        onBlur={(e) => callbacks.changeParent(e, taskId)}>{
                             dashboard.getParent(taskId)
                     }</div>
                 </td>
@@ -94,7 +94,7 @@ export const ProjectListRenderer = ({dashboard, columns, callbacks, showProjectD
                     <div key={column}
                         suppressContentEditableWarning='true' 
                         contentEditable='true' 
-                        onBlur={(e) => callbacks.updatePredecessors(e, index)}>{
+                        onBlur={(e) => callbacks.updatePredecessors(e, taskId)}>{
                             dashboard.getPredecessors(taskId)
                     }</div>                    
                 </td>

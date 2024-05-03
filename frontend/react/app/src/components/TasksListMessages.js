@@ -13,11 +13,12 @@ class TasksListMessages extends WebSocket {
     }
 
 
-    addTaskToBaseline = (taskId) => {
+    addTaskToBaseline = (taskId, baselineId) => {
         this.send(JSON.stringify({
             'name': 'add_task_to_baseline',
             'args': {
-                'task_id': taskId
+                'task_id': taskId,
+                'baseline_id': baselineId
             }
         }))
     }

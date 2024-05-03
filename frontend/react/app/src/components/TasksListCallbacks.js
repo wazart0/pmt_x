@@ -17,13 +17,13 @@ class TasksListCallbacks {
     }
 
 
-    addTaskToBaseline = (index) => this.tasksMessages.addTaskToBaseline(this.tasks.data[index]['id'])
+    addTaskToBaseline = (taskId, baselineId) => this.tasksMessages.addTaskToBaseline(taskId, baselineId)
 
 
-    hideSubTree = (index) => this.tasksMessages.hideSubTree(this.tasks.data[index]['id'])
+    hideSubTree = (index) => this.tasksMessages.hideSubTree(this.dashboard.tasks[index])
 
 
-    showSubTree = (index) => this.tasksMessages.showSubTree(this.tasks.data[index]['id'])
+    showSubTree = (index) => this.tasksMessages.showSubTree(this.dashboard.tasks[index])
 
 
     updateTaskName = (e, taskId) => {
@@ -36,13 +36,13 @@ class TasksListCallbacks {
     }
 
 
-    changeParent = (e, index) => {
+    changeParent = (e, taskId) => {
         e.target.textContent = e.target.textContent.trim()
-        if (e.target.textContent === String(this.tasks.data[index]['parent'])) return
-        const r = Validate.changeParentInputValidate(index, e.target.textContent, this.tasks.data)
+        if (e.target.textContent === String(this.dashboard.tasks[taskId]['parent'])) return
+        const r = Validate.changeParentInputValidate(index, e.target.textContent, this.dashboard.tasks)
 
-        if (r) this.tasksMessages.changeParent(this.tasks.data[index]['id'], e.target.textContent)
-        e.target.textContent = this.tasks.data[index]['parent']
+        if (r) this.tasksMessages.changeParent(taskId, e.target.textContent)
+        e.target.textContent = this.dashboard.tasks[taskId]['parent']
     }
 
 }

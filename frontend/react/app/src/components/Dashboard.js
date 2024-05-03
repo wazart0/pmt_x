@@ -1,6 +1,6 @@
 import React, { Component } from "react"
 import {ProjectListRenderer} from "./ProjectListRenderer"
-// import { sortByWBS } from "./ProjectListTreeManager"
+import { sortByWBS } from "./TasksListTreeManager"
 import * as demo from "./tmpData"
 // import { marked } from 'marked'
 // import DOMPurify from 'dompurify'
@@ -140,17 +140,17 @@ class Tasks {
     getDescription = (id) => (this.tasks[id]['description'])
 
     getWBS = (id, baselineId = this.getPrimaryBaselineId()) => 
-        (this.baselines[baselineId] !== undefined && this.baselines[baselineId][id] !== undefined ? this.baselines[baselineId][id]['wbs'] : null)
+        (this.baselines[baselineId] !== undefined && this.baselines[baselineId]['tasks'][id] !== undefined ? this.baselines[baselineId]['tasks'][id]['wbs'] : null)
     getWorktime = (id, baselineId = this.getPrimaryBaselineId()) => 
-        (this.baselines[baselineId] !== undefined && this.baselines[baselineId][id] !== undefined ? this.baselines[baselineId][id]['worktime'] : null)
+        (this.baselines[baselineId] !== undefined && this.baselines[baselineId]['tasks'][id] !== undefined ? this.baselines[baselineId]['tasks'][id]['worktime'] : null)
     getParent = (id, baselineId = this.getPrimaryBaselineId()) => 
-        (this.baselines[baselineId] !== undefined && this.baselines[baselineId][id] !== undefined ? this.baselines[baselineId][id]['parent'] : null)
+        (this.baselines[baselineId] !== undefined && this.baselines[baselineId]['tasks'][id] !== undefined ? this.baselines[baselineId]['tasks'][id]['parent'] : null)
     getPredecessors = (id, baselineId = this.getPrimaryBaselineId()) => 
-        (this.baselines[baselineId] !== undefined && this.baselines[baselineId][id] !== undefined ? this.baselines[baselineId][id]['predecessors'] : null)
+        (this.baselines[baselineId] !== undefined && this.baselines[baselineId]['tasks'][id] !== undefined ? this.baselines[baselineId]['tasks'][id]['predecessors'] : null)
     getStart = (id, baselineId = this.getPrimaryBaselineId()) => 
-        (this.baselines[baselineId] !== undefined && this.baselines[baselineId][id] !== undefined ? this.baselines[baselineId][id]['start'] : null)
+        (this.baselines[baselineId] !== undefined && this.baselines[baselineId]['tasks'][id] !== undefined ? this.baselines[baselineId]['tasks'][id]['start'] : null)
     getFinish = (id, baselineId = this.getPrimaryBaselineId()) => 
-        (this.baselines[baselineId] !== undefined && this.baselines[baselineId][id] !== undefined ? this.baselines[baselineId][id]['finish'] : null)
+        (this.baselines[baselineId] !== undefined && this.baselines[baselineId]['tasks'][id] !== undefined ? this.baselines[baselineId]['tasks'][id]['finish'] : null)
 
     getHidden = (id) => (this.userView['doc']['tasks'][id]['hidden'])
     getHiddenChildren = (id) => (this.userView['doc']['tasks'][id]['hiddenChildren'])
@@ -159,6 +159,7 @@ class Tasks {
     setPrimaryBaselineId = (id) => {
         if (this.userView['id'] === undefined) return
         this.userView['doc']['primaryBaselineId'] = id === 'None' ? null : id
+        if (this.userView['doc']['primaryBaselineId'] !== null) sortByWBS(this.tasksList, this.baselines[id]['tasks'])
         this.rerender()
     }
 

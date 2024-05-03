@@ -153,6 +153,37 @@ class TasksListManager(object):
 
 
 
+    def add_task_to_baseline(self, task_id, baseline_id):
+
+        def calculate_wbs(tasks):
+            if len(tasks) == 0: return '1'
+            df = pd.DataFrame.from_dict(tasks, orient='index')
+            return str(len(df[df.parent.isnull()].index) + 1)
+        
+        with self.Session() as session:
+            tasks, = session.execute(select(Baseline.tasks).where(Baseline.id == baseline_id)).one()
+        
+            if task_id in tasks: return { 'error': f'Cannot add task {task_id}. The task is already in {baseline_id} baseline.'}
+        
+            task = {
+                'wbs': calculate_wbs(tasks),
+                'worktime': None,
+                'parent': None,
+                'predecessors': None,
+                'start': None,
+                'finish': None
+            }
+
+            tasks[task_id] = task
+
+            r, = session.execute(update(Baseline).returning(Baseline).where(Baseline.id == baseline_id).values(tasks=tasks)).one()
+            session.commit()
+            result = r.to_dict()
+            
+        return { 'type': 'baselines', 'data': [{ result['id']: result }] }
+
+
+
     # def add_task_to_baseline(self, task_id, baseline_id = None) -> None:
     #     no_of_siblings = 1
     #     for task in self.tasks:
