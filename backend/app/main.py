@@ -1,6 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
@@ -30,9 +31,18 @@ from src.models import BaselineTaskPredecessor, BaselineTaskPredecessorCreate, B
 
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    while not is_db_up():
+        logger.error("Database is not available, retrying...")
+        time.sleep(5)
+    migrate_database()
 
+    yield
 
-app = FastAPI()
+    # Code at the end of the lifespan context manager will be executed after the app is shut down
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,14 +51,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event('startup')
-def on_startup():
-    while not is_db_up():
-        logger.error("Database is not available, retrying...")
-        time.sleep(5)
-    migrate_database()
 
 
 @app.get('/health')
