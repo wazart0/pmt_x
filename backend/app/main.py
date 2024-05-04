@@ -6,19 +6,19 @@ from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
 
 from typing import Annotated, List
-import copy
-import logging
+import time
 
 # from src.TasksList import TasksList
 from src.TasksListMessages import TasksListMessages
-from src.tmpdata import demo_data
-from src.database import engine
+from src.database import engine, is_db_up
 from src.migration import migrate_database
 from src.authentication import create_access_token, get_current_user, authenticate_user
 from src.api_models import Token
 from src.utils import get_password_hash
-import src.models as models
 from src.error import error_details, Error
+from src.logger import logger
+
+import src.models as models
 from src.models import User, UserCreate, UserRead, UserUpdate
 from src.models import Task, TaskCreate, TaskRead, TaskUpdate
 from src.models import Baseline, BaselineCreate, BaselineRead, BaselineUpdate
@@ -30,10 +30,6 @@ from src.models import BaselineTaskPredecessor, BaselineTaskPredecessorCreate, B
 
 
 
-
-FORMAT = '%(levelname)s:\t%(message)s'
-logging.basicConfig(format=FORMAT, level=logging.DEBUG)
-logger = logging.getLogger()
 
 
 app = FastAPI()
@@ -49,6 +45,9 @@ app.add_middleware(
 
 @app.on_event('startup')
 def on_startup():
+    while not is_db_up():
+        logger.error("Database is not available, retrying...")
+        time.sleep(5)
     migrate_database()
 
 
