@@ -8,7 +8,7 @@ from datetime import datetime
 # jira_info = {
 #     'url': 'https://xxx.atlassian.net/',
 #     'username': 'user1',
-#     'api_token': '6Pu9J7zSN4sgsdfREsAE08',
+#     'api_token': '',
 # }
 
 

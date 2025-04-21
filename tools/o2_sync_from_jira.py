@@ -461,7 +461,7 @@ if __name__ == "__main__":
         "name": "O2 jira",
         "url": "https://tangramcare.atlassian.net/",
         "username": "awaz@ownedoutcomes.com",
-        "api_token": "6Pu9J7zSN4wBqwqgSREsAE08",
+        "api_token": "",
     }
  
 
